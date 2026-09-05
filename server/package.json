@@ -20,9 +20,8 @@
     "firebase-admin": "^12.7.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "pdfkit": "^0.19.1"
-  },
-  "devDependencies": {
+    "pdfkit": "^0.19.1",
     "prisma": "^5.22.0"
-  }
+  },
+  "devDependencies": {}
 }
