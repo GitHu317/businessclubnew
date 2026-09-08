@@ -3,6 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import authRoutes from './routes/auth.js';
@@ -58,14 +59,21 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/faq', faqRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// Serve compiled static files from Vite build output
-app.use(express.static(path.join(__dirname, '../../client/dist')));
+// Safe static file serving check for client/dist
+const clientDistPath = path.join(__dirname, '../../client/dist');
 
-// Single Page Application (SPA) fallback
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
-});
+if (fs.existsSync(path.join(clientDistPath, 'index.html'))) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+} else {
+  // Root health check for standalone Render API service
+  app.get('/', (req, res) => {
+    res.json({ status: 'ok', service: 'Kotebe Business Club API is live!' });
+  });
+}
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));

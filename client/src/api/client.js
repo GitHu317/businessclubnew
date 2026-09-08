@@ -1,5 +1,6 @@
 // Centralized API client with JWT handling.
-const BASE = '/api';
+const PROD_BACKEND_URL = 'https://business-club-api-yk1k.onrender.com';
+const BASE = import.meta.env.PROD ? `${PROD_BACKEND_URL}/api` : '/api';
 
 function getToken() {
   return localStorage.getItem('bc_token');
