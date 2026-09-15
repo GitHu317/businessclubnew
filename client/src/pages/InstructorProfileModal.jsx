@@ -29,20 +29,20 @@ export default function InstructorProfileModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onClick={close}>
       <div
-        className="card w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto"
+        className="card w-full max-w-2xl my-3 sm:my-8 max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header banner */}
-        <div className="relative bg-gradient-to-br from-brand-950 to-brand-800 p-6 text-white">
+        <div className="relative bg-gradient-to-br from-brand-950 to-brand-800 p-4 sm:p-6 text-white">
           <button onClick={close} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-white/10 transition" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-start gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-gold-500 flex items-center justify-center text-3xl font-bold flex-shrink-0">
-              {profile.fullName?.charAt(0).toUpperCase()}
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-gold-500 flex items-center justify-center text-3xl font-bold flex-shrink-0 overflow-hidden">
+              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={`${profile.fullName} profile`} className="w-full h-full object-cover" /> : profile.fullName?.charAt(0).toUpperCase()}
             </div>
             <div className="pt-1">
-              <h2 className="text-2xl font-bold">{profile.fullName}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold break-words">{profile.fullName}</h2>
               {profile.headline && <p className="text-gold-400 text-sm mt-1">{profile.headline}</p>}
               <div className="flex items-center gap-2 mt-2">
                 <span className="badge bg-emerald-500/20 text-emerald-300">
