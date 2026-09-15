@@ -124,12 +124,18 @@ export default function AdminGames() {
           const gameRegistrations = registrations[g.id] || [];
           return (
             <div key={g.id} className="card overflow-hidden">
-              <div className="p-3 flex items-center gap-3">
+              <div className="p-3 flex flex-wrap items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center flex-shrink-0"><Gamepad2 className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0"><div className="font-semibold text-brand-950 text-sm truncate">{g.title}</div><div className="text-xs text-slate-500">{g.type.replace('_', ' ')} • {g.status} • {g.registrationOpen ? 'Open' : 'Closed'}</div></div>
-                <button type="button" onClick={() => toggleRegistrations(g)} className="btn-secondary text-xs" aria-expanded={isExpanded}>{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} Registered students</button>
-                <button type="button" onClick={() => setForm({ ...g, id: g.id, startDate: g.startDate ? g.startDate.slice(0, 16) : '', endDate: g.endDate ? g.endDate.slice(0, 16) : '' })} className="btn-ghost p-2"><Pencil className="w-4 h-4" /></button>
-                <button type="button" onClick={() => del(g)} className="btn-ghost p-2 text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                <div className="flex items-center gap-1 ml-auto">
+                  <button type="button" onClick={() => setForm({ ...g, id: g.id, startDate: g.startDate ? g.startDate.slice(0, 16) : '', endDate: g.endDate ? g.endDate.slice(0, 16) : '' })} className="btn-ghost p-2" aria-label={`Edit ${g.title}`}><Pencil className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => del(g)} className="btn-ghost p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${g.title}`}><Trash2 className="w-4 h-4" /></button>
+                </div>
+                <button type="button" onClick={() => toggleRegistrations(g)} className="w-full btn-secondary justify-center text-sm font-semibold border-brand-200 text-brand-800 hover:bg-brand-50" aria-expanded={isExpanded}>
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {isExpanded ? 'Hide registered students' : 'View registered students'}
+                  {registrations[g.id] && <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs">{registrations[g.id].length}</span>}
+                </button>
               </div>
               {isExpanded && <div className="border-t border-slate-100 bg-slate-50/60 p-4">
                 {loadingRegistrations[g.id] ? <Spinner label="Loading registered students..." /> : registrationErrors[g.id] ? <p className="text-sm text-red-600">{registrationErrors[g.id]}</p> : <>
