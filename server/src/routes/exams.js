@@ -35,39 +35,6 @@ function gradeQuestion(question, studentValue) {
   return { isCorrect, awarded: isCorrect ? question.points : 0, autoGraded: true };
 }
 
-// GET /api/exams/pending-grades  (admin — list attempts needing manual grading)
-// Placed BEFORE /:id to prevent route collision
-router.get('/pending-grades/all', authRequired, adminRequired, async (req, res) => {
-  try {
-    const attempts = await prisma.examAttempt.findMany({
-      where: { status: 'PENDING_GRADE' },
-      include: {
-        user: { select: { id: true, fullName: true, email: true } },
-        exam: { include: { course: true, questions: true } },
-        grades: true,
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
-
-    // Map questions to each grade result for frontend compatibility
-    const formattedAttempts = attempts.map(attempt => {
-      const questionMap = new Map(attempt.exam.questions.map(q => [q.id, q]));
-      return {
-        ...attempt,
-        grades: (attempt.grades || []).map(g => ({
-          ...g,
-          question: questionMap.get(g.questionId) || null
-        }))
-      };
-    });
-
-    return res.json({ attempts: formattedAttempts });
-  } catch (err) {
-    console.error('pending-grades error:', err);
-    return res.status(500).json({ error: 'Could not load pending grades.', details: err.message });
-  }
-});
-
 // GET /api/exams/:id  (fetch exam with questions, hides answers for students but reveals for admins)
 router.get('/:id', authRequired, async (req, res) => {
   try {
@@ -80,9 +47,8 @@ router.get('/:id', authRequired, async (req, res) => {
     });
     if (!exam) return res.status(404).json({ error: 'Exam not found.' });
     const enrollment = await prisma.enrollment.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: exam.courseId } } });
-    const approvedProject = exam.course.projectRequired ? await prisma.projectSubmission.findFirst({ where: { userId: req.user.id, courseId: exam.courseId, status: 'APPROVED' } }) : true;
-    const canTake = Boolean(enrollment?.completed && approvedProject);
-    const examGateReason = !enrollment?.completed ? 'Complete all lessons and lesson quizzes before taking the final exam.' : (!approvedProject ? 'Submit your project and wait for instructor approval before taking the final exam.' : null);
+    const canTake = Boolean(enrollment?.completed);
+    const examGateReason = !enrollment?.completed ? 'Complete all lessons and lesson quizzes before taking the final exam.' : null;
 
     const isAdmin = req.user && req.user.role === 'ADMIN';
 
@@ -107,7 +73,6 @@ router.get('/:id', authRequired, async (req, res) => {
         questions: safeQuestions,
         canTake,
         examGateReason,
-        projectRequired: exam.course.projectRequired,
       },
     });
   } catch (err) {
@@ -212,11 +177,6 @@ router.post('/:id/submit', authRequired, async (req, res) => {
     if (!exam) return res.status(404).json({ error: 'Exam not found.' });
     const enrollment = await prisma.enrollment.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: exam.courseId } } });
     if (!enrollment?.completed) return res.status(403).json({ error: 'Complete all lessons and lesson quizzes before taking the final exam.' });
-    if (exam.course.projectRequired) {
-      const approvedProject = await prisma.projectSubmission.findFirst({ where: { userId: req.user.id, courseId: exam.courseId, status: 'APPROVED' } });
-      if (!approvedProject) return res.status(403).json({ error: 'Submit your project and wait for instructor approval before taking the final exam.' });
-    }
-
     const answerMap = new Map(
       answers.map((a) => [
         a.questionId,
@@ -229,9 +189,7 @@ router.post('/:id/submit', authRequired, async (req, res) => {
     );
     let autoPoints = 0;
     let totalAutoPoints = 0;
-    let needsManualGrading = false;
     const detailedResults = [];
-    const pendingGrades = [];
 
     for (const q of exam.questions) {
       const studentValue = answerMap.get(q.id);
@@ -248,30 +206,13 @@ router.post('/:id/submit', authRequired, async (req, res) => {
           points: result.awarded,
           maxPoints: q.points,
         });
-      } else {
-        // SHORT_ANSWER
-        needsManualGrading = true;
-        pendingGrades.push({ questionId: q.id, value: studentValue, maxPoints: q.points });
-        totalAutoPoints += q.points;
       }
     }
 
-    // If no manual grading needed: compute final score & certificate eligibility
-    const hasManual = needsManualGrading;
-    let score;
-    let passed;
-    let status;
-    if (!hasManual) {
-      score = totalAutoPoints > 0 ? Math.round((autoPoints / totalAutoPoints) * 100) : 0;
-      passed = score >= exam.passingScore;
-      status = 'AUTO_GRADED';
-    } else {
-      // provisional score from auto-graded portion; final pending admin grade
-      const autoPct = totalAutoPoints > 0 ? Math.round((autoPoints / totalAutoPoints) * 100) : 0;
-      score = autoPct;
-      passed = false;
-      status = 'PENDING_GRADE';
-    }
+    // All exam question types are automatically graded.
+    const score = totalAutoPoints > 0 ? Math.round((autoPoints / totalAutoPoints) * 100) : 0;
+    const passed = score >= exam.passingScore;
+    const status = 'AUTO_GRADED';
 
     const attempt = await prisma.examAttempt.create({
       data: {
@@ -284,19 +225,8 @@ router.post('/:id/submit', authRequired, async (req, res) => {
       },
     });
 
-    // create pending grade records for manual questions
-    if (hasManual) {
-      await prisma.gradeResult.createMany({
-        data: pendingGrades.map((p) => ({
-          attemptId: attempt.id,
-          questionId: p.questionId,
-          awarded: 0,
-        })),
-      });
-    }
-
     let certificate = null;
-    if (passed && !hasManual) {
+    if (passed) {
       const existing = await prisma.certificate.findFirst({
         where: { userId: req.user.id, courseId: exam.courseId },
       });
@@ -333,7 +263,6 @@ router.post('/:id/submit', authRequired, async (req, res) => {
 
     return res.json({
       attempt: { id: attempt.id, score, passed, status, submittedAt: attempt.submittedAt },
-      needsManualGrading: hasManual,
       detailedResults,
       certificate: certificate
         ? {
@@ -348,86 +277,6 @@ router.post('/:id/submit', authRequired, async (req, res) => {
   } catch (err) {
     console.error('submit error', err);
     return res.status(500).json({ error: 'Could not submit exam.' });
-  }
-});
-
-// POST /api/exams/grade/:attemptId  (admin — grade short-answer questions & finalise)
-router.post('/grade/:attemptId', authRequired, adminRequired, async (req, res) => {
-  try {
-    const { grades } = req.body; // array of { questionId, awarded, feedback }
-    if (!Array.isArray(grades)) {
-      return res.status(400).json({ error: 'grades array required.' });
-    }
-    const attempt = await prisma.examAttempt.findUnique({
-      where: { id: req.params.attemptId },
-      include: { exam: { include: { questions: true } } },
-    });
-    if (!attempt) return res.status(404).json({ error: 'Attempt not found.' });
-
-    // update grade results
-    for (const g of grades) {
-      await prisma.gradeResult.update({
-        where: { attemptId_questionId: { attemptId: attempt.id, questionId: g.questionId } },
-        data: { awarded: g.awarded, feedback: g.feedback || null, gradedBy: req.user.id, gradedAt: new Date() },
-      });
-    }
-
-    // recompute total score across all questions
-    const allGrades = await prisma.gradeResult.findMany({ where: { attemptId: attempt.id } });
-    const totalPoints = attempt.exam.questions.reduce((sum, q) => sum + (q.points || 1), 0);
-    // For auto-graded questions we need their points too. Re-derive:
-    const autoAnswers = JSON.parse(attempt.answers);
-    const answerMap = new Map(autoAnswers.map((a) => [a.questionId, a.value]));
-    let earned = 0;
-    for (const q of attempt.exam.questions) {
-      const gradeRow = allGrades.find((gr) => gr.questionId === q.id);
-      if (gradeRow) {
-        earned += gradeRow.awarded;
-      } else {
-        // auto-graded — recompute
-        const r = gradeQuestion(q, answerMap.get(q.id));
-        earned += r.awarded;
-      }
-    }
-    const finalScore = totalPoints > 0 ? Math.round((earned / totalPoints) * 100) : 0;
-    const passed = finalScore >= attempt.exam.passingScore;
-
-    await prisma.examAttempt.update({
-      where: { id: attempt.id },
-      data: { score: finalScore, passed, status: 'GRADED' },
-    });
-
-    let certificate = null;
-    if (passed) {
-      const existing = await prisma.certificate.findFirst({
-        where: { userId: attempt.userId, courseId: attempt.exam.courseId },
-      });
-      if (!existing) {
-        const certificateId = generateCertificateId();
-        const issuedAt = new Date();
-        const verificationHash = generateVerificationHash(certificateId, attempt.userId, attempt.exam.courseId, issuedAt.toISOString());
-        certificate = await prisma.certificate.create({
-          data: {
-            certificateId,
-            userId: attempt.userId,
-            courseId: attempt.exam.courseId,
-            examAttemptId: attempt.id,
-            type: 'PROFESSIONAL',
-            verificationHash,
-          },
-          include: { course: true, user: true },
-        });
-        await awardXp(attempt.userId, XP_REWARDS.EARN_CERTIFICATE, { badgeKey: 'certified', collectibleKey: 'crown_gold' });
-      } else {
-        certificate = await prisma.certificate.findUnique({ where: { id: existing.id }, include: { course: true, user: true } });
-      }
-    }
-
-    await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'EXAM', resourceId: attempt.id, description: `Graded attempt ${attempt.id}: score ${finalScore}, ${passed ? 'passed' : 'failed'}` });
-    return res.json({ attempt: { id: attempt.id, score: finalScore, passed, status: 'GRADED' }, certificate });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Could not grade attempt.' });
   }
 });
 

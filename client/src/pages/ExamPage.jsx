@@ -61,7 +61,6 @@ export default function ExamPage() {
   // ---- Result view ----
   if (result) {
     const passed = result.attempt.passed;
-    const isPending = result.attempt.status === 'PENDING_GRADE';
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className={`card p-8 text-center ${passed ? 'border-emerald-300 bg-emerald-50/50' : isPending ? 'border-amber-300 bg-amber-50/50' : 'border-red-300 bg-red-50/50'}`}>

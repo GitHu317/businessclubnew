@@ -65,11 +65,6 @@ export const api = {
   createLesson: (courseId, body) => request(`/courses/${courseId}/lessons`, { method: 'POST', body }),
   updateLesson: (courseId, id, body) => request(`/courses/${courseId}/lessons/${id}`, { method: 'PUT', body }),
   deleteLesson: (courseId, id) => request(`/courses/${courseId}/lessons/${id}`, { method: 'DELETE' }),
-  getProject: (courseId) => request(`/courses/project/${courseId}`),
-  submitProject: (courseId, body) => request(`/courses/project/${courseId}`, { method: 'POST', body }),
-  gradeProject: (courseId, submissionId, body) => request(`/courses/project/${courseId}/${submissionId}/grade`, { method: 'POST', body }),
-  deleteProject: (courseId, submissionId) => request(`/courses/project/${courseId}/${submissionId}`, { method: 'DELETE' }),
-  projectFileUrl: (courseId, submissionId) => `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/courses/project/${courseId}/${submissionId}/file`,
   reorderLessons: (courseId, orderedIds) => request(`/courses/${courseId}/lessons/reorder`, { method: 'POST', body: { orderedIds } }),
   enroll: (slug) => request(`/courses/${slug}/enroll`, { method: 'POST' }),
   completeLesson: (slug, lessonId) => request(`/courses/${slug}/lessons/${lessonId}/complete`, { method: 'POST' }),
@@ -85,8 +80,6 @@ export const api = {
   deleteExam: (id) => request(`/exams/${id}`, { method: 'DELETE' }),
   submitExam: (id, answers) => request(`/exams/${id}/submit`, { method: 'POST', body: { answers } }),
   myAttempts: () => request('/exams/my-attempts/all'),
-  pendingGrades: () => request('/exams/pending-grades/all'),
-  gradeAttempt: (attemptId, grades) => request(`/exams/grade/${attemptId}`, { method: 'POST', body: { grades } }),
 
   // certificates
   myCertificates: () => request('/certificates/mine'),
@@ -123,7 +116,7 @@ export const api = {
   // chat
   listChatMessages: (channel) => request(`/chat/${channel}`),
   sendChatMessage: (channel, body) => request(`/chat/${channel}`, { method: 'POST', body: { body } }),
-  deleteChatMessage: (id) => request(`/chat/message/${id}`, { method: 'DELETE' }),
+  deleteChatMessages: (ids) => request('/chat/messages', { method: 'DELETE', body: { ids } }),
 
   // faq
   listFAQ: () => request('/faq', { auth: false }),

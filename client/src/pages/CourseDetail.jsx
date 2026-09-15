@@ -29,10 +29,6 @@ export default function CourseDetail() {
   const [reviews, setReviews] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [instructorModalOpen, setInstructorModalOpen] = useState(false);
-  const [project, setProject] = useState(null);
-  const [projectUrl, setProjectUrl] = useState('');
-  const [projectFile, setProjectFile] = useState(null);
-  const [projectSubmitting, setProjectSubmitting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +37,6 @@ export default function CourseDetail() {
         setCourse(d.course);
         setReviews(d.course.reviews || []);
         if (d.course.lessons?.length) setActiveLesson(d.course.lessons[0]);
-        if (user && d.course.projectRequired) api.getProject(d.course.id).then((projectData) => setProject(projectData.submission)).catch(() => {});
       })
       .finally(() => setLoading(false));
 
@@ -57,18 +52,6 @@ export default function CourseDetail() {
       }).catch(() => {});
     }
   }, [slug, user]);
-
-  const submitProject = async (event) => {
-    event.preventDefault();
-    if (!course || (!projectUrl && !projectFile)) return;
-    setProjectSubmitting(true);
-    try {
-      let fileData = null;
-      if (projectFile) fileData = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(projectFile); });
-      const result = await api.submitProject(course.id, { projectUrl: projectUrl || null, fileName: projectFile?.name || null, fileData });
-      setProject(result.submission); setProjectUrl(''); setProjectFile(null); alert('Project submitted for instructor review.');
-    } catch (error) { alert(error.message); } finally { setProjectSubmitting(false); }
-  };
 
   const hasPrereq = course?.prerequisiteId;
   const prereqLocked = hasPrereq && enrollStatus && !enrollStatus.hasPrerequisiteCertificate;
@@ -355,15 +338,6 @@ export default function CourseDetail() {
               <EmptyState icon={FileText} title="No lessons yet" description="Lessons will appear here once published." />
             )}
 
-            {course.projectRequired && enrolled && (
-              <div className="card p-6 border-purple-200 bg-purple-50/40">
-                <h3 className="font-bold text-brand-950 flex items-center gap-2 mb-2"><Paperclip className="w-5 h-5 text-purple-700" /> {course.projectRequired ? 'Required project' : 'Optional project'}</h3>
-                <p className="text-sm text-slate-600 whitespace-pre-line mb-4">{course.projectRequirements || 'Submit your project for instructor review before taking the final exam.'}</p>
-                {project && <div className={`rounded-lg p-3 text-sm mb-3 ${project.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : project.status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}><strong>{project.status}</strong>{project.feedback && <div className="mt-1">{project.feedback}</div>}</div>}
-                <form onSubmit={submitProject} className="space-y-2">{course.projectSubmissionType !== 'ZIP' && <input className="input" type="url" placeholder="Project URL (https://...)" value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} />}{course.projectSubmissionType === 'BOTH' && <div className="text-xs text-slate-500 text-center">or upload a ZIP file (max 5 MB)</div>}{course.projectSubmissionType !== 'URL' && <input className="input" type="file" accept=".zip" onChange={(e) => setProjectFile(e.target.files?.[0] || null)} />}{projectUrl || projectFile ? <button className="btn-primary text-sm" disabled={projectSubmitting}>{projectSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />} Submit project</button> : null}</form>
-              </div>
-            )}
-
             {course.exams?.length > 0 && (
               <div className="card p-6">
                 <h3 className="font-bold text-brand-950 flex items-center gap-2 mb-4">
@@ -378,12 +352,12 @@ export default function CourseDetail() {
                           {ex._count?.questions || ex.questions?.length || 0} questions • Pass {ex.passingScore}% • {ex.durationMins} min
                         </div>
                       </div>
-                      {enrolled && (!course.projectRequired || project?.status === 'APPROVED') && enrolled.completed ? (
+                      {enrolled && enrolled.completed ? (
                         <button onClick={() => navigate(`/courses/${slug}/exams/${ex.id}`)} className="btn-primary text-sm">
                           Take exam <ArrowRight className="w-4 h-4" />
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400 flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> {!enrolled ? 'Enroll first' : course.projectRequired && project?.status !== 'APPROVED' ? 'Project approval required' : 'Complete all lessons first'}</span>
+                        <span className="text-xs text-slate-400 flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> {!enrolled ? 'Enroll first' : 'Complete all lessons first'}</span>
                       )}
                     </div>
                   ))}

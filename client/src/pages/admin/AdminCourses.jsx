@@ -106,21 +106,9 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
     cardOrder: course?.cardOrder || 0,
     prerequisiteId: course?.prerequisiteId || '',
     thumbnailUrl: course?.thumbnailUrl || '',
-    projectRequired: course?.projectRequired ?? false,
-    projectSubmissionType: course?.projectSubmissionType || 'BOTH',
-    projectRequirements: course?.projectRequirements || '',
   });
   const [saving, setSaving] = useState(false);
 
-  const setProjectFormat = (format) => {
-    const current = form.projectSubmissionType || 'BOTH';
-    const urlSelected = current === 'URL' || current === 'BOTH';
-    const zipSelected = current === 'ZIP' || current === 'BOTH';
-    const nextUrl = format === 'URL' ? !urlSelected : urlSelected;
-    const nextZip = format === 'ZIP' ? !zipSelected : zipSelected;
-    if (!nextUrl && !nextZip) return;
-    setForm({ ...form, projectSubmissionType: nextUrl && nextZip ? 'BOTH' : nextUrl ? 'URL' : 'ZIP' });
-  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -192,38 +180,6 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
           <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
           Published (visible to students)
         </label>
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-4 space-y-4 shadow-sm">
-          {!form.projectRequired ? (
-            <button type="button" onClick={() => setForm({ ...form, projectRequired: true, projectSubmissionType: 'BOTH' })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-bold text-brand-800 shadow-sm transition hover:border-brand-300 hover:bg-slate-50">
-              <Plus className="mx-auto mb-1 h-5 w-5" /> Add project
-              <span className="mt-1 block text-xs font-normal text-amber-700">Choose how students will submit their project</span>
-            </button>
-          ) : (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-base font-bold text-orange-950">How will you accept projects?</p>
-                  <p className="mt-1 text-xs text-orange-800">Select one or both submission methods. Students will submit their work, and instructors will review it in Grading.</p>
-                </div>
-                <button type="button" onClick={() => setForm({ ...form, projectRequired: false })} className="rounded-lg px-2 py-1 text-xs font-semibold text-orange-700 transition hover:bg-white/70">Remove</button>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[{ key: 'URL', title: 'Project URL', detail: 'Students share a link to their project.', icon: '↗' }, { key: 'ZIP', title: 'ZIP file', detail: 'Students upload a ZIP file of their project.', icon: '↓' }].map((option) => {
-                  const selected = form.projectSubmissionType === option.key || form.projectSubmissionType === 'BOTH';
-                  return <button type="button" key={option.key} onClick={() => setProjectFormat(option.key)} className={`text-left rounded-xl border-2 p-4 transition ${selected ? 'border-orange-500 bg-white shadow-md ring-2 ring-orange-200' : 'border-amber-200 bg-white/50 hover:border-orange-300'}`}>
-                    <div className="flex items-center justify-between"><span className="text-2xl font-bold text-orange-600">{option.icon}</span><span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 text-xs ${selected ? 'border-orange-600 bg-orange-600 text-white' : 'border-amber-300 text-transparent'}`}>✓</span></div>
-                    <p className="mt-2 font-bold text-orange-950">{option.title}</p><p className="mt-1 text-xs leading-relaxed text-orange-800">{option.detail}</p>
-                  </button>;
-                })}
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-bold text-orange-950">What are the project requirements?</label>
-                <textarea className="input min-h-28 border-amber-200 bg-white/80" rows={4} required placeholder="Explain exactly what students must submit and how it will be evaluated." value={form.projectRequirements} onChange={(e) => setForm({ ...form, projectRequirements: e.target.value })} />
-                <p className="mt-1 text-xs text-orange-800">Approved projects unlock the final exam when the project is required.</p>
-              </div>
-            </>
-          )}
-        </div>
       </div>
       <div className="flex gap-2 mt-4">
         <button type="submit" disabled={saving} className="btn-primary">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save</button>

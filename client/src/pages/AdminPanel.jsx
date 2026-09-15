@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import {
   Shield, BookOpen, Award, Users, Gamepad2, LayoutDashboard, Megaphone, UserCheck, ScrollText,
-  BarChart3, MessageSquare, GraduationCap, HelpCircle, Star, PenLine, Trophy,
+  BarChart3, MessageSquare, GraduationCap, HelpCircle, Star, Trophy,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import AdminCourses from './admin/AdminCourses.jsx';
@@ -19,7 +19,6 @@ import AdminApplications from './admin/AdminApplications.jsx';
 import AdminScreening from './admin/AdminScreening.jsx';
 import AdminFAQ from './admin/AdminFAQ.jsx';
 import AdminInstructors from './admin/AdminInstructors.jsx';
-import AdminGrading from './admin/AdminGrading.jsx';
 import AdminReviews from './admin/AdminReviews.jsx';
 
 // Base tabs visible to every BOD / admin account.
@@ -28,7 +27,6 @@ const baseTabs = [
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/courses', label: 'Courses', icon: BookOpen },
   { to: '/admin/exams', label: 'Exams', icon: Award },
-  { to: '/admin/grading', label: 'Grading', icon: PenLine },
   { to: '/admin/games', label: 'Business Games', icon: Gamepad2 },
   { to: '/admin/game-registrations', label: 'Game Registrations', icon: UserCheck },
   { to: '/admin/members', label: 'Membership', icon: UserCheck },
@@ -60,7 +58,7 @@ export default function AdminPanel() {
 
   if (isInstructorOnly) {
     tabs = baseTabs.filter((t) =>
-      ['/admin', '/admin/courses', '/admin/exams', '/admin/grading', '/admin/reviews'].includes(t.to)
+      ['/admin', '/admin/courses', '/admin/exams', '/admin/reviews'].includes(t.to)
     );
   }
 
@@ -114,7 +112,6 @@ export default function AdminPanel() {
             <Route index element={<AdminOverview tabs={tabs} isPresident={isPresident} />} />
             <Route path="courses" element={<AdminCourses />} />
             <Route path="exams" element={<AdminExams />} />
-            <Route path="grading" element={<AdminGrading />} />
             <Route path="reviews" element={<AdminReviews />} />
 
             {/* Protected routes for admins/BOD only */}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma.js';
-import { authRequired, adminRequired } from '../middleware/auth.js';
+import { authRequired, adminRequired, presidentRequired } from '../middleware/auth.js';
 import { logActivity } from '../utils/activityLog.js';
 
 // Board / Admin internal chat ("chat bt/n bod's").
@@ -46,14 +46,15 @@ router.post('/:channel', authRequired, adminRequired, async (req, res) => {
   }
 });
 
-// DELETE /api/chat/message/:id  (president/admin — delete a message)
-router.delete('/message/:id', authRequired, adminRequired, async (req, res) => {
+// DELETE /api/chat/messages (President-only bulk deletion)
+router.delete('/messages', authRequired, presidentRequired, async (req, res) => {
   try {
-    await prisma.chatMessage.delete({ where: { id: req.params.id } });
-    await logActivity({ req, userId: req.user.id, action: 'DELETE', resourceType: 'CHAT', resourceId: req.params.id, description: 'Deleted a chat message' });
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: 'Could not delete message.' });
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter(Boolean) : [];
+    if (!ids.length) return res.status(400).json({ error: 'Select at least one message.' });
+    const result = await prisma.chatMessage.deleteMany({ where: { id: { in: ids } } });
+    await logActivity({ req, userId: req.user.id, action: 'DELETE', resourceType: 'CHAT', description: `Deleted ${result.count} chat message(s)` });
+    return res.json({ success: true, deleted: result.count });
+  } catch (err) { return res.status(500).json({ error: 'Could not delete messages.' });
   }
 });
 

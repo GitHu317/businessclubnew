@@ -61,7 +61,6 @@ model User {
   reviews         Review[]
   applications    InstructorApplication[]
   chatMessages    ChatMessage[]
-  projectSubmissions ProjectSubmission[]
 }
 
 // Audit trail for Board of Directors (BOD) actions across the admin panel.
@@ -112,9 +111,6 @@ model Course {
   tags         String   @default("[]") // JSON array of tag strings, e.g. ["#business","#free"]
   // Prerequisite: a linked course that must be completed (certificate earned) first.
   prerequisiteId String? // points to another Course.id
-  projectRequired Boolean @default(false)
-  projectSubmissionType String @default("BOTH") // URL | ZIP | BOTH
-  projectRequirements String @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -131,7 +127,6 @@ model Course {
   enrollments  Enrollment[]
   certificates Certificate[]
   reviews      Review[]
-  projectSubmissions ProjectSubmission[]
 }
 
 // Creator / instructor profile — required before a user can publish a course.
@@ -285,27 +280,6 @@ model Exam {
   attempts     ExamAttempt[]
 }
 
-model ProjectSubmission {
-  id          String   @id @default(cuid())
-  userId      String
-  courseId    String
-  projectUrl  String?
-  fileName    String?
-  fileData    String?  @db.Text
-  status      String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  feedback    String?
-  evaluation  String?  @db.Text
-  attachments String?  @db.Text
-  gradedBy    String?
-  submittedAt DateTime @default(now())
-  gradedAt    DateTime?
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  @@unique([userId, courseId])
-  @@index([courseId, status])
-}
-
 // Expanded question model supporting multiple formats.
 model Question {
   id          String   @id @default(cuid())
@@ -330,29 +304,13 @@ model ExamAttempt {
   answers     String   // JSON array of {questionId, value}
   score       Int      // percentage
   passed      Boolean
-  status      String   @default("AUTO_GRADED") // AUTO_GRADED | PENDING_GRADE | GRADED
+  status      String   @default("AUTO_GRADED")
   startedAt   DateTime @default(now())
   submittedAt DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   certificate Certificate?
-  grades      GradeResult[]
-}
-
-// Per-question grade for short-answer / manually graded questions.
-model GradeResult {
-  id           String   @id @default(cuid())
-  attemptId    String
-  questionId   String
-  awarded      Int      @default(0) // points awarded
-  feedback     String?  // admin feedback
-  gradedBy     String?
-  gradedAt     DateTime @default(now())
-
-  attempt      ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-
-  @@unique([attemptId, questionId])
 }
 
 model Certificate {
