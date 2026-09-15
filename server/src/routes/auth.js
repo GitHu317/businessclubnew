@@ -49,10 +49,11 @@ async function getFirebaseAuth() {
 router.post('/signup', async (req, res) => {
   try {
     const { fullName, email, password, studentId, department } = req.body;
-    if (!fullName || !email || !password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!fullName || !normalizedEmail || !password) {
       return res.status(400).json({ error: 'Full name, email and password are required.' });
     }
-    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
@@ -60,7 +61,7 @@ router.post('/signup', async (req, res) => {
     const user = await prisma.user.create({
       data: {
         fullName,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
         studentId: studentId || null,
         department: department || null,
@@ -83,10 +84,11 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
