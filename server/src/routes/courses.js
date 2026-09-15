@@ -152,10 +152,23 @@ router.post('/project/:courseId/:submissionId/grade', authRequired, async (req, 
     const course = await prisma.course.findUnique({ where: { id: req.params.courseId }, include: { creator: true } });
     if (!course || (req.user.role !== 'ADMIN' && course.creator?.userId !== req.user.id)) return res.status(403).json({ error: 'Only the assigned instructor or an admin can grade this project.' });
     const rejectionMessage = "Your project didn't qualify the criteria of the project. Please review the requirements and send your project again.";
-    const submission = await prisma.projectSubmission.update({ where: { id: req.params.submissionId }, data: { status, feedback: feedback || (status === 'REJECTED' ? rejectionMessage : null), evaluation: JSON.stringify(evaluation || {}), attachments: JSON.stringify(attachments || []), gradedBy: req.user.id, gradedAt: new Date() }, include: { user: { select: { id: true, fullName: true, email: true } } } });
+    const approvalMessage = 'Your project has been approved. You may now take the final exam.';
+    const submission = await prisma.projectSubmission.update({ where: { id: req.params.submissionId }, data: { status, feedback: feedback || (status === 'REJECTED' ? rejectionMessage : approvalMessage), evaluation: JSON.stringify(evaluation || {}), attachments: JSON.stringify(attachments || []), gradedBy: req.user.id, gradedAt: new Date() }, include: { user: { select: { id: true, fullName: true, email: true } } } });
     await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'PROJECT', resourceId: submission.id, description: `${status === 'APPROVED' ? 'Approved' : 'Rejected'} project for ${submission.user.fullName}` });
     return res.json({ submission: { ...submission, fileData: undefined } });
   } catch (err) { console.error('project grading error:', err); return res.status(500).json({ error: 'Could not grade project.' }); }
+});
+
+// DELETE /api/courses/project/:courseId/:submissionId (instructor/admin removes a submission)
+router.delete('/project/:courseId/:submissionId', authRequired, async (req, res) => {
+  try {
+    const submission = await prisma.projectSubmission.findUnique({ where: { id: req.params.submissionId }, include: { course: { include: { creator: true } } } });
+    if (!submission || submission.courseId !== req.params.courseId) return res.status(404).json({ error: 'Project submission not found.' });
+    if (req.user.role !== 'ADMIN' && submission.course.creator?.userId !== req.user.id) return res.status(403).json({ error: 'Only the assigned instructor or an admin can delete this project.' });
+    await prisma.projectSubmission.delete({ where: { id: submission.id } });
+    await logActivity({ req, userId: req.user.id, action: 'DELETE', resourceType: 'PROJECT', resourceId: submission.id, description: `Deleted project submission for ${submission.course.title}` });
+    return res.json({ success: true });
+  } catch (err) { console.error('project deletion error:', err); return res.status(500).json({ error: 'Could not delete project submission.' }); }
 });
 
 // GET /api/courses/project/:courseId/:submissionId/file (instructor download)

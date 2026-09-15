@@ -194,7 +194,7 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
         </label>
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-4 space-y-4 shadow-sm">
           {!form.projectRequired ? (
-            <button type="button" onClick={() => setForm({ ...form, projectRequired: true, projectSubmissionType: 'BOTH' })} className="w-full rounded-xl border-2 border-dashed border-amber-300 bg-white/70 px-4 py-4 text-sm font-bold text-amber-900 transition hover:border-amber-500 hover:bg-white">
+            <button type="button" onClick={() => setForm({ ...form, projectRequired: true, projectSubmissionType: 'BOTH' })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-bold text-brand-800 shadow-sm transition hover:border-brand-300 hover:bg-slate-50">
               <Plus className="mx-auto mb-1 h-5 w-5" /> Add project
               <span className="mt-1 block text-xs font-normal text-amber-700">Choose how students will submit their project</span>
             </button>

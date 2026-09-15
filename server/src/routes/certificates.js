@@ -4,6 +4,7 @@ import { authRequired, adminRequired } from '../middleware/auth.js';
 import { logActivity } from '../utils/activityLog.js';
 import { awardXp, XP_REWARDS } from '../utils/gamification.js';
 import PDFDocument from 'pdfkit';
+import { fileURLToPath } from 'url';
 
 const router = Router();
 
@@ -125,8 +126,12 @@ async function streamPrintableCertificatePdf(cert, res) {
 
   // Emblem
   const emblemY = 86, emblemR = 26;
-  doc.circle(cx, emblemY, emblemR).fillColor(isMember ? COLORS.memberGold : COLORS.brand900).fill();
-  doc.fillColor(COLORS.gold400).fontSize(26).font(SANS).text('\u2605', cx - 9, emblemY - 12, { width: 18, align: 'center' });
+  const iconPath = fileURLToPath(new URL('../../../client/public/business-club-icon.jpg', import.meta.url));
+  doc.save();
+  doc.circle(cx, emblemY, emblemR - 1).clip();
+  doc.image(iconPath, cx - emblemR + 1, emblemY - emblemR + 1, { width: (emblemR - 1) * 2, height: (emblemR - 1) * 2 });
+  doc.restore();
+  doc.circle(cx, emblemY, emblemR).lineWidth(2).strokeColor(accent).stroke();
 
   // Header
   doc.fillColor(COLORS.brand700).font(SANS_BOLD).fontSize(12).text('BUSINESS  CLUB', cx - 120, emblemY + emblemR + 8, { width: 240, align: 'center', characterSpacing: 4 });
@@ -179,8 +184,11 @@ async function streamPrintableCertificatePdf(cert, res) {
 
   // Center seal
   const sealR = 22;
-  doc.circle(cx, sigY - 6, sealR).lineWidth(2).strokeColor(accent).fillColor('#faf6e8').fillAndStroke();
-  doc.fillColor(COLORS.gold600).font(SANS).fontSize(22).text('\u2605', cx - 8, sigY - 20, { width: 16, align: 'center' });
+  doc.save();
+  doc.circle(cx, sigY - 6, sealR - 1).clip();
+  doc.image(iconPath, cx - sealR + 1, sigY - 6 - sealR + 1, { width: (sealR - 1) * 2, height: (sealR - 1) * 2 });
+  doc.restore();
+  doc.circle(cx, sigY - 6, sealR).lineWidth(2).strokeColor(accent).stroke();
 
   doc.end();
 }

@@ -47,7 +47,7 @@ function CertificateSheet({ cert, mode = 'online' }) {
         {/* Seal / icon */}
         <div className="flex justify-center mb-4">
           <div className={`w-16 h-16 rounded-full ${theme.ring} border-2 flex items-center justify-center`}>
-            {isMember ? <Crown className="w-9 h-9" /> : <Award className="w-9 h-9" />}
+            <img src="/business-club-icon.jpg" alt="Business Club of SSC" className="h-full w-full rounded-full object-cover" />
           </div>
         </div>
         <p className={`text-sm tracking-[0.3em] ${theme.accent} font-semibold uppercase`}>Business Club</p>

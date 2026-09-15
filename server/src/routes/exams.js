@@ -29,8 +29,10 @@ function gradeQuestion(question, studentValue) {
     const isCorrect = norm(studentValue) === norm(question.answer);
     return { isCorrect, awarded: isCorrect ? question.points : 0, autoGraded: true };
   }
-  // SHORT_ANSWER — cannot auto-grade
-  return { isCorrect: false, awarded: 0, autoGraded: false };
+  // SHORT_ANSWER — automatically grade an exact normalized answer.
+  const norm = (s) => String(s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '').replace(/\s+/g, ' ');
+  const isCorrect = norm(studentValue) === norm(question.answer);
+  return { isCorrect, awarded: isCorrect ? question.points : 0, autoGraded: true };
 }
 
 // GET /api/exams/pending-grades  (admin — list attempts needing manual grading)

@@ -68,6 +68,7 @@ export const api = {
   getProject: (courseId) => request(`/courses/project/${courseId}`),
   submitProject: (courseId, body) => request(`/courses/project/${courseId}`, { method: 'POST', body }),
   gradeProject: (courseId, submissionId, body) => request(`/courses/project/${courseId}/${submissionId}/grade`, { method: 'POST', body }),
+  deleteProject: (courseId, submissionId) => request(`/courses/project/${courseId}/${submissionId}`, { method: 'DELETE' }),
   projectFileUrl: (courseId, submissionId) => `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/courses/project/${courseId}/${submissionId}/file`,
   reorderLessons: (courseId, orderedIds) => request(`/courses/${courseId}/lessons/reorder`, { method: 'POST', body: { orderedIds } }),
   enroll: (slug) => request(`/courses/${slug}/enroll`, { method: 'POST' }),
