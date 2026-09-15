@@ -33,19 +33,19 @@ export default function InstructorProfileModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header banner */}
-        <div className="relative bg-gradient-to-br from-brand-950 to-brand-800 p-4 sm:p-6 text-white">
-          <button onClick={close} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-white/10 transition" aria-label="Close">
+        <div className="relative bg-gradient-to-br from-amber-100 via-orange-50 to-rose-100 p-4 sm:p-6 text-orange-950">
+          <button onClick={close} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-orange-900/10 transition" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
           <div className="flex flex-col sm:flex-row items-start gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-gold-500 flex items-center justify-center text-3xl font-bold flex-shrink-0 overflow-hidden">
+            <div className="w-20 h-20 rounded-2xl bg-white/70 border-2 border-orange-400 shadow-lg flex items-center justify-center text-3xl font-bold flex-shrink-0 overflow-hidden">
               {profile.avatarUrl ? <img src={profile.avatarUrl} alt={`${profile.fullName} profile`} className="w-full h-full object-cover" /> : profile.fullName?.charAt(0).toUpperCase()}
             </div>
             <div className="pt-1">
               <h2 className="text-xl sm:text-2xl font-bold break-words">{profile.fullName}</h2>
-              {profile.headline && <p className="text-gold-400 text-sm mt-1">{profile.headline}</p>}
+              {profile.headline && <p className="text-orange-700 text-sm mt-1">{profile.headline}</p>}
               <div className="flex items-center gap-2 mt-2">
-                <span className="badge bg-emerald-500/20 text-emerald-300">
+                <span className="badge bg-white/70 text-orange-800 ring-1 ring-orange-200">
                   <Award className="w-3 h-3" /> Verified Instructor
                 </span>
               </div>
