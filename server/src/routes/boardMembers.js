@@ -22,6 +22,9 @@ router.post('/', authRequired, presidentRequired, async (req, res) => {
     const member = await prisma.boardMember.create({
       data: { fullName, title, bio, photoUrl, email, linkedin, twitter, instagram, order: order || 0 },
     });
+    if (String(title || '').toLowerCase().includes('president')) {
+      await prisma.user.updateMany({ where: { bodRole: 'PRESIDENT' }, data: { fullName: member.fullName } });
+    }
     await logActivity({
       req,
       userId: req.user.id,
@@ -40,10 +43,17 @@ router.post('/', authRequired, presidentRequired, async (req, res) => {
 // PUT /api/board-members/:id  (President only — Task 3 RBAC)
 router.put('/:id', authRequired, presidentRequired, async (req, res) => {
   try {
+    const previous = await prisma.boardMember.findUnique({ where: { id: req.params.id } });
     const member = await prisma.boardMember.update({
       where: { id: req.params.id },
       data: { ...req.body },
     });
+    const title = String(member.title || '').toLowerCase();
+    if (title.includes('president')) {
+      await prisma.user.updateMany({ where: { bodRole: 'PRESIDENT' }, data: { fullName: member.fullName } });
+    } else if (previous?.fullName) {
+      await prisma.user.updateMany({ where: { fullName: previous.fullName, bodRole: { not: null } }, data: { fullName: member.fullName } });
+    }
     await logActivity({
       req,
       userId: req.user.id,
