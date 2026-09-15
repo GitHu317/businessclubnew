@@ -39,6 +39,7 @@ export const api = {
   // dashboard
   dashboard: () => request('/dashboard'),
   updateMembership: (body) => request('/dashboard/membership-status', { method: 'PUT', body }),
+  updateMembershipPayments: (body) => request('/dashboard/membership-payments', { method: 'PUT', body }),
   adminUsers: () => request('/dashboard/admin/users'),
 
   // board members

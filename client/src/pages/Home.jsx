@@ -35,7 +35,7 @@ export default function Home() {
     {
       icon: Gamepad2,
       title: 'Compete',
-      desc: 'Join business simulations, case challenges, and pitch nights that put your skills to the test in real time.',
+      desc: 'Join the SSC student community for practical learning, peer connection, and club activities that build confidence.',
       color: 'bg-emerald-50 text-emerald-700',
     },
     {
@@ -65,9 +65,9 @@ export default function Home() {
                 Build the business skills that <span className="text-gold-400">move Ethiopia forward.</span>
               </h1>
               <p className="mt-6 text-lg text-slate-300 max-w-xl leading-relaxed">
-                The Business Club at Kotebe University of Education is a student-led community for future
-                entrepreneurs. Learn from structured courses, compete in business simulations, and earn
-                verifiable certificates — all in one platform.
+                SSC is a student-led school club at Kotebe University of Education. Learn from structured
+                courses, connect with fellow students, take part in club activities, and earn verifiable
+                certificates — all in one platform.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/signup" className="btn-gold text-base px-6 py-3">
@@ -101,22 +101,22 @@ export default function Home() {
                       <Trophy className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="font-bold text-brand-950">Campus Startup Simulation</div>
-                      <div className="text-xs text-slate-500">League now open for registration</div>
+                      <div className="font-bold text-brand-950">SSC Business Club</div>
+                      <div className="text-xs text-slate-500">Learn, connect, and grow together</div>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Weekly team decisions
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Student-led club activities
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Virtual capital of 50,000 ETB
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Practical business learning
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Ranked by cumulative profit
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> A supportive student network
                     </div>
                   </div>
-                  <Link to="/games" className="btn-primary w-full mt-5">Join a Game</Link>
+                  <Link to="/courses" className="btn-primary w-full mt-5">Explore the Club</Link>
                 </div>
                 <div className="card bg-white/95 backdrop-blur p-5 rounded-2xl -rotate-3 -mt-6 ml-12 relative">
                   <div className="flex items-center gap-3">
@@ -158,14 +158,14 @@ export default function Home() {
       <section className="bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-12">
-            <h2 className="section-title">Membership tiers</h2>
-            <p className="text-slate-500 mt-3">Every member starts as Pending and is verified by the board.</p>
+            <h2 className="section-title">Membership status</h2>
+            <p className="text-slate-500 mt-3">Every SSC member starts as Pending and is reviewed by the club administrators.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
               { name: 'Pending', desc: 'Newly registered. Awaiting board verification.', icon: ShieldCheck, color: 'amber' },
-              { name: 'Active', desc: 'Verified member with full access to courses and games.', icon: TrendingUp, color: 'emerald' },
-              { name: 'Verified', desc: 'Recognised contributor eligible for premium programs and honors.', icon: Award, color: 'brand' },
+              { name: 'Active', desc: 'Approved club member with access to the platform and club activities.', icon: TrendingUp, color: 'emerald' },
+              { name: 'Verified', desc: 'Verified SSC member whose membership record is confirmed by the club.', icon: Award, color: 'brand' },
             ].map((t) => (
               <div key={t.name} className="card p-6 text-center">
                 <div className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-${t.color}-100 text-${t.color}-700`}>

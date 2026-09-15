@@ -327,7 +327,7 @@ export default function Dashboard() {
             </h2>
             {gameRegistrations.length === 0 ? (
               <div className="text-center py-8 bg-slate-50/80 rounded-2xl border-2 border-dashed border-slate-200 p-5">
-                <p className="text-xs text-slate-500 font-semibold">No tournament registrations yet. Join live startup simulations and business competitions.</p>
+                <p className="text-xs text-slate-500 font-semibold">No club activity registrations yet. Check the activities page to join SSC events.</p>
               </div>
             ) : (
               <div className="space-y-3.5">

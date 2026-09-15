@@ -266,7 +266,7 @@ async function main() {
     { question: 'Are the courses free?', answer: 'Yes. All courses on the platform are free for Business Club members. Some premium games and events may have a small registration fee, which will be clearly marked.', category: 'Courses', order: 2 },
     { question: 'How do I earn a certificate?', answer: 'Enroll in a course, complete all lessons, and pass the final exam with at least 70%. You will automatically receive a verifiable certificate with a unique Certificate ID.', category: 'Certificates', order: 3 },
     { question: 'Can I become a course creator?', answer: 'Yes! Submit an instructor application from your dashboard. The Board of Directors reviews qualifications and, once approved, you can create and publish your own courses.', category: 'Courses', order: 4 },
-    { question: 'What are Business Games?', answer: 'Business Games are simulations, case challenges, and pitch competitions organised by the club. Register from the Games page — they’re a fun way to apply what you learn.', category: 'Games', order: 5 },
+    { question: 'What are Business Games?', answer: 'Business Games are optional club activities such as case challenges and friendly competitions organised by SSC. Register from the Games page to take part.', category: 'Games', order: 5 },
     { question: 'How does gamification work?', answer: 'You earn XP by enrolling, completing lessons, finishing courses, and earning certificates. XP determines your level. You also collect badges and reward items shown on your dashboard.', category: 'Gamification', order: 6 },
     { question: 'How do I verify a certificate?', answer: 'Use the Verify Certificate page and enter the Certificate ID. Anyone can verify a certificate’s authenticity without logging in.', category: 'Certificates', order: 7 },
     { question: 'I forgot my password, what do I do?', answer: 'Contact the Secretary General or any Board of Directors member through the club email. They will reset your account credentials securely.', category: 'Account', order: 8 },
@@ -579,17 +579,17 @@ async function main() {
   // ---- Business Games ----
   const games = [
     {
-      title: 'Campus Startup Simulation League',
+      title: 'SSC Business Activity Day',
       description:
-        'A semester-long business simulation where teams of 3–5 members run a virtual company, make weekly pricing, marketing, and hiring decisions, and compete on cumulative profit.',
-      type: 'SIMULATION',
+        'A practical SSC club activity where students work together, discuss business ideas, and apply what they learn in a friendly school-club setting.',
+      type: 'COMPETITION',
       rules:
-        '1. Teams of 3–5 verified members. 2. Each team receives a starting capital of 50,000 ETB (virtual). 3. Weekly decisions by Friday 6 PM. 4. Late submissions freeze the previous week’s decisions. 5. Ranking by cumulative net profit.',
-      schedule: 'Every Friday, 6:00 PM – Science Shared Campus Hall B',
+        '1. Open to registered SSC members. 2. Participants work in small teams. 3. Follow the activity instructions shared by the club. 4. Respectful collaboration is expected.',
+      schedule: 'As announced by the SSC club – Science Shared Campus',
       status: 'UPCOMING',
       registrationOpen: true,
       registrationUrl: '',
-      announcement: 'Registration is now open! Form your team and submit by the kickoff workshop.',
+      announcement: 'Registration is now open. Join fellow SSC members for a practical club activity.',
       startDate: new Date('2026-10-01T09:00:00Z'),
       endDate: new Date('2026-12-15T17:00:00Z'),
     },
@@ -621,6 +621,10 @@ async function main() {
     },
   ];
 
+  const oldSimulation = await prisma.businessGame.findFirst({ where: { title: 'Campus Startup Simulation League' } });
+  if (oldSimulation) {
+    await prisma.businessGame.update({ where: { id: oldSimulation.id }, data: { title: 'SSC Business Activity Day' } });
+  }
   for (const g of games) {
     const existingGame = await prisma.businessGame.findFirst({ where: { title: g.title } });
     if (existingGame) {
@@ -634,9 +638,9 @@ async function main() {
   // ---- Announcements ----
   const announcements = [
     {
-      title: 'Welcome to the Business Club at Kotebe University of Education',
+      title: 'Welcome to SSC at Kotebe University of Education',
       content:
-        'We are thrilled to welcome all new and returning members to the Business Club! This semester we are launching our new Learning Management System, a verified certificate program, and the Campus Startup Simulation League. Explore the platform, enroll in courses, and join a game today.',
+        'We are thrilled to welcome all new and returning SSC members. Explore the platform, enroll in courses, take part in club activities, and grow together with fellow students.',
       category: 'GENERAL',
       pinned: true,
     },
@@ -648,9 +652,9 @@ async function main() {
       pinned: false,
     },
     {
-      title: 'Simulation League kickoff workshop',
+      title: 'SSC club activity workshop',
       content:
-        'Join us for the kickoff workshop of the Campus Startup Simulation League. We will walk through the rules, the platform, and form teams on the spot.',
+        'Join us for an SSC club activity workshop. We will explain the activity, answer questions, and help members take part.',
       category: 'EVENT',
       pinned: false,
     },

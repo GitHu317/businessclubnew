@@ -27,7 +27,8 @@ model User {
   role            String   @default("STUDENT") // STUDENT | ADMIN
   bodRole         String?  // PRESIDENT | BOD (only set for Board of Directors admin accounts)
   membershipStatus String @default("PENDING") // PENDING | ACTIVE | VERIFIED
-  membershipTier  String   @default("BASIC") // BASIC | PREMIUM | HONORARY
+  membershipTier  String @default("BASIC") // BASIC | PREMIUM | HONORARY
+  monthlyPayments  String @default("[]") // JSON array of paid month numbers for the current membership year
   joinedAt        DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

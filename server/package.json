@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "prisma:generate": "node node_modules/prisma/build/index.js generate",
+    "prisma:push": "node node_modules/prisma/build/index.js db push --accept-data-loss",
     "prisma:migrate": "node node_modules/prisma/build/index.js db push --force-reset && node prisma/seed.js",
     "seed": "node prisma/seed.js"
   },

@@ -17,8 +17,8 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-sm text-slate-400 max-w-md leading-relaxed">
-              Empowering the next generation of Ethiopian entrepreneurs through education, simulation,
-              and a thriving community of builders. Learn, compete, and earn verifiable certificates.
+              Supporting SSC students through education, practical club activities, and a thriving
+              community. Learn, connect, and earn verifiable certificates.
             </p>
           </div>
 

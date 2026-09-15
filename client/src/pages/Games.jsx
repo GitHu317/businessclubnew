@@ -60,10 +60,10 @@ export default function Games() {
           <div className="flex items-center gap-2 text-gold-400 text-sm mb-3">
             <Gamepad2 className="w-4 h-4" /> Club Activities
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">Business Games &amp; Competitions</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold">SSC Club Activities</h1>
           <p className="text-slate-300 mt-3 max-w-2xl">
-            Put your skills to the test. Join simulations, case challenges, and pitch nights.
-            View schedules, read the rules, and register — all in one place.
+            Take part in practical business activities, case challenges, and pitch events organised by SSC.
+            View schedules, read the details, and register — all in one place.
           </p>
         </div>
       </section>
@@ -121,7 +121,7 @@ export default function Games() {
                     {/* Rules */}
                     <details className="mt-3 group">
                       <summary className="cursor-pointer text-sm font-semibold text-brand-700 flex items-center gap-1.5 list-none">
-                        <BookOpen className="w-4 h-4" /> Simulation rules & scoring
+                        <BookOpen className="w-4 h-4" /> Activity details
                         <span className="ml-auto text-xs text-slate-400 group-open:hidden">show</span>
                         <span className="ml-auto text-xs text-slate-400 hidden group-open:inline">hide</span>
                       </summary>
@@ -161,11 +161,10 @@ export default function Games() {
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-brand-950">Why compete?</h3>
-              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-                Business games give you hands-on experience making real decisions under pressure — pricing, hiring,
-                budgeting, and pitching. Top performers earn recognition from the board and mentorship opportunities
-                with local entrepreneurs.
+                <h3 className="font-bold text-brand-950">Why participate?</h3>
+                <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                SSC activities give members a practical way to learn, collaborate, share ideas, and receive
+                recognition and mentorship from the club.
               </p>
             </div>
           </div>

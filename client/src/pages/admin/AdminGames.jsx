@@ -91,7 +91,7 @@ export default function AdminGames() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-brand-950 flex items-center gap-2"><Gamepad2 className="w-5 h-5" /> Business Games ({games.length})</h2>
-        <button onClick={() => setForm({ title: '', description: '', type: 'SIMULATION', rules: '', schedule: '', status: 'UPCOMING', registrationOpen: true, announcement: '', startDate: '', endDate: '' })} className="btn-primary text-sm"><Plus className="w-4 h-4" /> New game</button>
+        <button onClick={() => setForm({ title: '', description: '', type: 'COMPETITION', rules: '', schedule: '', status: 'UPCOMING', registrationOpen: true, announcement: '', startDate: '', endDate: '' })} className="btn-primary text-sm"><Plus className="w-4 h-4" /> New activity</button>
       </div>
 
       {form && (
@@ -103,7 +103,7 @@ export default function AdminGames() {
           <div><label className="label">Title</label><input className="input" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div><label className="label">Description</label><textarea className="input" rows={2} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid sm:grid-cols-2 gap-3">
-            <div><label className="label">Type</label><select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option value="SIMULATION">Simulation</option><option value="COMPETITION">Competition</option><option value="CASE_CHALLENGE">Case Challenge</option></select></div>
+            <div><label className="label">Type</label><select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option value="COMPETITION">Competition</option><option value="CASE_CHALLENGE">Case Challenge</option></select></div>
             <div><label className="label">Status</label><select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="UPCOMING">Upcoming</option><option value="ONGOING">Ongoing</option><option value="COMPLETED">Completed</option></select></div>
           </div>
           <div><label className="label">Schedule</label><input className="input" required value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} /></div>

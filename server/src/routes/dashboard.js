@@ -267,6 +267,25 @@ router.put('/membership-status', authRequired, adminRequired, async (req, res) =
   }
 });
 
+// PUT /api/dashboard/membership-payments  (admin updates a user's paid months)
+router.put('/membership-payments', authRequired, adminRequired, async (req, res) => {
+  try {
+    const { userId, months } = req.body;
+    if (!userId || !Array.isArray(months) || months.some((month) => !Number.isInteger(Number(month)) || Number(month) < 1 || Number(month) > 12)) {
+      return res.status(400).json({ error: 'userId and a list of month numbers from 1 to 12 are required.' });
+    }
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { monthlyPayments: JSON.stringify([...new Set(months.map(Number))].sort((a, b) => a - b)) },
+    });
+    await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'USER', resourceId: userId, description: `Updated monthly payments for ${updated.fullName}`, metadata: safeBody(req.body) });
+    return res.json({ user: { id: updated.id, monthlyPayments: updated.monthlyPayments } });
+  } catch (err) {
+    console.error('update membership payments error:', err);
+    return res.status(500).json({ error: 'Could not update monthly payments.' });
+  }
+});
+
 // GET /api/dashboard/admin/users  (admin - list all users for membership management)
 router.get('/admin/users', authRequired, adminRequired, async (req, res) => {
   try {
@@ -282,9 +301,17 @@ router.get('/admin/users', authRequired, adminRequired, async (req, res) => {
         department: true,
         studentId: true,
         joinedAt: true,
+        monthlyPayments: true,
       },
     });
-    return res.json({ users });
+    const boardMembers = await prisma.boardMember.findMany({ select: { email: true, title: true } });
+    const titleByEmail = new Map(boardMembers.filter((member) => member.email).map((member) => [member.email.toLowerCase(), member.title]));
+    const normalizedUsers = users.map((user) => ({
+      ...user,
+      title: titleByEmail.get(user.email.toLowerCase()) || null,
+      monthlyPayments: (() => { try { return JSON.parse(user.monthlyPayments || '[]'); } catch { return []; } })(),
+    }));
+    return res.json({ users: normalizedUsers });
   } catch (err) {
     return res.status(500).json({ error: 'Could not load users.' });
   }

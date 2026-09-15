@@ -36,13 +36,19 @@ router.post('/', authRequired, adminRequired, async (req, res) => {
 router.put('/:id', authRequired, adminRequired, async (req, res) => {
   try {
     const { question, answer, category, order } = req.body;
-    const faq = await prisma.faq.update({
+    if (!question?.trim() || !answer?.trim()) {
+      return res.status(400).json({ error: 'Question and answer are required.' });
+    }
+    const existing = await prisma.fAQ.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'FAQ entry not found.' });
+    const faq = await prisma.fAQ.update({
       where: { id: req.params.id },
-      data: { question, answer, category, order },
+      data: { question: question.trim(), answer: answer.trim(), category: category?.trim() || 'General', order: Number.isFinite(Number(order)) ? Number(order) : 0 },
     });
     await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'FAQ', resourceId: faq.id, description: `Updated FAQ`, metadata: safeBody(req.body) });
     return res.json({ faq });
   } catch (err) {
+    console.error('update FAQ error:', err);
     return res.status(500).json({ error: 'Could not update FAQ.' });
   }
 });
@@ -50,10 +56,13 @@ router.put('/:id', authRequired, adminRequired, async (req, res) => {
 // DELETE /api/faq/:id  (admin)
 router.delete('/:id', authRequired, adminRequired, async (req, res) => {
   try {
-    await prisma.faq.delete({ where: { id: req.params.id } });
+    const existing = await prisma.fAQ.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'FAQ entry not found.' });
+    await prisma.fAQ.delete({ where: { id: req.params.id } });
     await logActivity({ req, userId: req.user.id, action: 'DELETE', resourceType: 'FAQ', resourceId: req.params.id, description: 'Deleted FAQ' });
     return res.json({ success: true });
   } catch (err) {
+    console.error('delete FAQ error:', err);
     return res.status(500).json({ error: 'Could not delete FAQ.' });
   }
 });
