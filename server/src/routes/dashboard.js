@@ -287,6 +287,67 @@ router.put('/membership-payments', authRequired, adminRequired, async (req, res)
 });
 
 // GET /api/dashboard/admin/users  (admin - list all users for membership management)
+// GET /api/dashboard/admin/users/:id/details  (admin - member details)
+router.get('/admin/users/:id/details', authRequired, adminRequired, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true, fullName: true, email: true, role: true, bodRole: true, authProvider: true, googleId: true,
+        membershipStatus: true, membershipTier: true, department: true, studentId: true,
+        joinedAt: true, hasOnboarded: true, heardAbout: true, institution: true, usageGoals: true,
+        enrollments: {
+          orderBy: { enrolledAt: 'desc' },
+          select: {
+            progress: true, completed: true, enrolledAt: true, completedAt: true,
+            course: { select: { title: true, slug: true } },
+            lessonProgress: { where: { completed: true }, select: { id: true, completedAt: true } },
+          },
+        },
+        certificates: { orderBy: { issuedAt: 'desc' }, select: { id: true, issuedAt: true, course: { select: { title: true } } } },
+        gameRegistrations: { orderBy: { registeredAt: 'desc' }, select: { registeredAt: true, game: { select: { title: true } } } },
+        activityLogs: { orderBy: { createdAt: 'desc' }, take: 200, select: { action: true, createdAt: true, description: true, metadata: true } },
+      },
+    });
+    if (!user) return res.status(404).json({ error: 'Member not found.' });
+    const loginEvents = user.activityLogs.filter((event) => event.action === 'LOGIN');
+    const activeDays = new Set(user.activityLogs.map((event) => new Date(event.createdAt).toISOString().slice(0, 10))).size;
+    return res.json({
+      user: {
+        ...user,
+        authProvider: user.googleId ? 'GOOGLE' : user.authProvider,
+        usage: {
+          activityEvents: user.activityLogs.length,
+          signIns: loginEvents.length,
+          activeDays,
+          lastSeenAt: user.activityLogs[0]?.createdAt || null,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('member details error:', err);
+    return res.status(500).json({ error: 'Could not load member details.' });
+  }
+});
+
+// DELETE /api/dashboard/admin/users/:id  (President only)
+router.delete('/admin/users/:id', authRequired, adminRequired, async (req, res) => {
+  try {
+    if (req.user.bodRole !== 'PRESIDENT') return res.status(403).json({ error: 'Only the President can delete members.' });
+    if (req.params.id === req.user.id) return res.status(400).json({ error: 'You cannot delete your own account.' });
+    const member = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, fullName: true, role: true } });
+    if (!member) return res.status(404).json({ error: 'Member not found.' });
+    if (member.role === 'ADMIN') return res.status(403).json({ error: 'Administrator accounts cannot be deleted from Membership.' });
+    await prisma.user.delete({ where: { id: member.id } });
+    await logActivity({ req, userId: req.user.id, action: 'DELETE', resourceType: 'USER', resourceId: member.id, description: `Deleted member ${member.fullName}` });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('delete member error:', err);
+    return res.status(500).json({ error: 'Could not delete member.' });
+  }
+});
+
+// GET /api/dashboard/admin/users  (admin - list all users for membership management)
 router.get('/admin/users', authRequired, adminRequired, async (req, res) => {
   try {
     const users = await prisma.user.findMany({

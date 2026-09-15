@@ -35,6 +35,7 @@ model User {
 
   // Google / Firebase auth
   googleId        String?  @unique
+  authProvider    String   @default("EMAIL") // EMAIL | GOOGLE
   avatarUrl       String?
 
   // Onboarding questionnaire (collected on first sign-in)

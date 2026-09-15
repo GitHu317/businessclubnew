@@ -67,6 +67,7 @@ router.post('/signup', async (req, res) => {
         role: 'STUDENT',
         membershipStatus: 'PENDING',
         membershipTier: 'BASIC',
+        authProvider: 'EMAIL',
       },
     });
     const token = signToken(user);
@@ -95,14 +96,13 @@ router.post('/login', async (req, res) => {
     }
     const token = signToken(user);
     const { passwordHash: _ph, ...safe } = user;
-    if (user.role === 'ADMIN') {
-      await logActivity({
-        req,
-        userId: user.id,
-        action: 'LOGIN',
-        description: `${user.fullName} (${user.bodRole || 'ADMIN'}) signed in`,
-      });
-    }
+    await logActivity({
+      req,
+      userId: user.id,
+      action: 'LOGIN',
+      description: `${user.fullName} signed in with email and password`,
+      metadata: JSON.stringify({ provider: 'EMAIL' }),
+    });
     return res.json({ user: safe, token });
   } catch (err) {
     console.error('login error', err);
@@ -141,7 +141,7 @@ router.post('/google', async (req, res) => {
     if (user) {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { googleId, avatarUrl: avatarUrl || user.avatarUrl },
+        data: { googleId, authProvider: 'GOOGLE', avatarUrl: avatarUrl || user.avatarUrl },
       });
     } else {
       user = await prisma.user.create({
@@ -153,6 +153,7 @@ router.post('/google', async (req, res) => {
           role: 'STUDENT',
           membershipStatus: 'PENDING',
           membershipTier: 'BASIC',
+          authProvider: 'GOOGLE',
         },
       });
     }
@@ -162,6 +163,13 @@ router.post('/google', async (req, res) => {
     }
 
     const token = signToken(user);
+    await logActivity({
+      req,
+      userId: user.id,
+      action: 'LOGIN',
+      description: `${user.fullName} signed in with Google`,
+      metadata: JSON.stringify({ provider: 'GOOGLE' }),
+    });
     const { passwordHash: _ph, ...safe } = user;
     return res.json({ user: safe, token, isNewUser });
   } catch (err) {
