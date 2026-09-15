@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma.js';
-import { authRequired, adminRequired } from '../middleware/auth.js';
+import { authRequired, adminRequired, presidentRequired } from '../middleware/auth.js';
 import { logActivity, safeBody } from '../utils/activityLog.js';
 import { awardXp, XP_REWARDS } from '../utils/gamification.js';
 
@@ -185,6 +185,31 @@ router.put('/profile', authRequired, async (req, res) => {
     return res.json({ profile });
   } catch (err) {
     return res.status(500).json({ error: 'Could not update creator profile.' });
+  }
+});
+
+// PUT /api/instructors/:userId/profile — President-only editing of instructor information.
+router.put('/:userId/profile', authRequired, presidentRequired, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { fullName, email, department, headline, bio, expertise, avatarUrl, credentials } = req.body;
+    const existing = await prisma.creatorProfile.findUnique({ where: { userId } });
+    if (!existing) return res.status(404).json({ error: 'Instructor profile not found.' });
+    const [user, profile] = await prisma.$transaction([
+      prisma.user.update({ where: { id: userId }, data: { ...(fullName ? { fullName } : {}), ...(email ? { email } : {}), ...(department !== undefined ? { department: department || null } : {}) } }),
+      prisma.creatorProfile.update({ where: { id: existing.id }, data: {
+        ...(fullName ? { fullName } : {}), ...(headline !== undefined ? { headline: headline || '' } : {}),
+        ...(bio !== undefined ? { bio: bio || '' } : {}),
+        ...(expertise !== undefined ? { expertise: JSON.stringify(Array.isArray(expertise) ? expertise : String(expertise).split(',').map((item) => item.trim()).filter(Boolean)) } : {}),
+        ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || null } : {}), ...(credentials !== undefined ? { credentials: credentials || null } : {}),
+      } }),
+    ]);
+    await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'CREATOR_PROFILE', resourceId: profile.id, description: `Updated instructor profile for ${user.fullName}` });
+    return res.json({ profile: { ...profile, user: { id: user.id, fullName: user.fullName, email: user.email, department: user.department } } });
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'P2002') return res.status(409).json({ error: 'That email address is already in use.' });
+    return res.status(500).json({ error: 'Could not update instructor profile.' });
   }
 });
 

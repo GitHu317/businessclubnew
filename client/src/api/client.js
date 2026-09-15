@@ -103,6 +103,7 @@ export const api = {
   },
   reviewApplication: (id, body) => request(`/instructors/applications/${id}/review`, { method: 'POST', body }),
   updateCreatorProfile: (body) => request('/instructors/profile', { method: 'PUT', body }),
+  updateInstructorProfile: (userId, body) => request(`/instructors/${userId}/profile`, { method: 'PUT', body }),
   getInstructor: (id) => request(`/instructors/${id}`, { auth: false }),
   listInstructors: () => request('/instructors'),
   revokeInstructor: (userId) => request(`/instructors/${userId}/revoke`, { method: 'PUT' }),
@@ -133,6 +134,7 @@ export const api = {
   analyticsOverview: () => request('/analytics/overview'),
   analyticsRegistrations: () => request('/analytics/registrations'),
   analyticsEnrollmentsByCourse: () => request('/analytics/enrollments-by-course'),
+  analyticsLoginFrequency: (days = 14) => request(`/analytics/login-frequency?days=${days}`),
   registrationScreening: () => request('/analytics/registration-screening'),
 
   // games

@@ -95,6 +95,42 @@ router.get('/enrollments-by-course', authRequired, adminRequired, async (req, re
   }
 });
 
+// GET /api/analytics/login-frequency — six members with the most logins, grouped by day.
+router.get('/login-frequency', authRequired, adminRequired, async (req, res) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 7), 31);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    const events = await prisma.activityLog.findMany({
+      where: { action: 'LOGIN', createdAt: { gte: start } },
+      select: { userId: true, createdAt: true, user: { select: { fullName: true, email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    const counts = new Map();
+    for (const event of events) {
+      const entry = counts.get(event.userId) || { userId: event.userId, name: event.user?.fullName || event.user?.email || 'Member', total: 0, byDay: {} };
+      const date = new Date(event.createdAt).toISOString().slice(0, 10);
+      entry.total += 1;
+      entry.byDay[date] = (entry.byDay[date] || 0) + 1;
+      counts.set(event.userId, entry);
+    }
+    const dates = Array.from({ length: days }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return date.toISOString().slice(0, 10);
+    });
+    const members = Array.from(counts.values()).sort((a, b) => b.total - a.total).slice(0, 6).map((member) => ({
+      userId: member.userId, name: member.name, total: member.total,
+      points: dates.map((date) => ({ date, value: member.byDay[date] || 0 })),
+    }));
+    return res.json({ dates, members });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Could not load member login frequency.' });
+  }
+});
+
 // GET /api/analytics/registration-screening  (new signers + onboarding answers for review)
 router.get('/registration-screening', authRequired, adminRequired, async (req, res) => {
   try {

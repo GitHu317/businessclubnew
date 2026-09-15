@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen, ArrowLeft, ArrowRight, Clock, Award, CheckCircle2, Circle,
   Lock, PlayCircle, FileText, Loader2, Star, Image as ImageIcon, Paperclip,
-  HelpCircle, CheckCircle, XCircle, User as UserIcon, Link2, ChevronRight,
+  HelpCircle, CheckCircle, XCircle, User as UserIcon, ChevronRight,
 } from 'lucide-react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -319,6 +319,13 @@ export default function CourseDetail() {
                     </div>
                   </div>
                 )}
+
+                {activeLesson.media?.filter((m) => m.type === 'PROJECT').map((project) => (
+                  <div key={project.id} className="mb-5 rounded-xl border border-purple-200 bg-purple-50/60 p-4">
+                    <h4 className="text-sm font-semibold text-purple-950 mb-2 flex items-center gap-1.5"><Paperclip className="w-4 h-4 text-purple-700" /> Lesson project</h4>
+                    {project.filename ? <a href={project.url} download={project.filename} className="inline-flex items-center gap-2 text-sm font-semibold text-purple-800 hover:underline">Download {project.filename}<ArrowRight className="w-4 h-4" /></a> : <a href={project.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-purple-800 hover:underline">Open project URL<ArrowRight className="w-4 h-4" /></a>}
+                  </div>
+                ))}
 
                 {activeLesson.quiz?.questions?.length > 0 && (
                   <LessonQuiz

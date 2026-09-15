@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '12mb' }));
 app.use(morgan('dev'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'business-club-api' }));
