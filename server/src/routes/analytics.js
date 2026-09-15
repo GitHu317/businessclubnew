@@ -104,14 +104,12 @@ router.get('/login-frequency', authRequired, adminRequired, async (req, res) => 
     start.setDate(start.getDate() - (days - 1));
     const events = await prisma.activityLog.findMany({
       where: { action: 'LOGIN', createdAt: { gte: start } },
-      select: { userId: true, createdAt: true, user: { select: { studentId: true, bodRole: true } } },
+      select: { userId: true, createdAt: true, user: { select: { fullName: true, email: true } } },
       orderBy: { createdAt: 'asc' },
     });
     const counts = new Map();
     for (const event of events) {
-      const roleByStudentId = { 'KUE-ADMIN-001': 'President', 'KUE-ADMIN-002': 'Vice President', 'KUE-ADMIN-003': 'Secretary General', 'KUE-ADMIN-004': 'Event Manager', 'KUE-ADMIN-005': 'Social Manager', 'KUE-ADMIN-006': 'Visual Content Creator' };
-      const role = roleByStudentId[event.user?.studentId] || (event.user?.bodRole === 'PRESIDENT' ? 'President' : 'BOD Member');
-      const entry = counts.get(event.userId) || { userId: event.userId, role, total: 0, byDay: {} };
+      const entry = counts.get(event.userId) || { userId: event.userId, name: event.user?.fullName || event.user?.email || 'Member', total: 0, byDay: {} };
       const date = new Date(event.createdAt).toISOString().slice(0, 10);
       entry.total += 1;
       entry.byDay[date] = (entry.byDay[date] || 0) + 1;
@@ -123,7 +121,7 @@ router.get('/login-frequency', authRequired, adminRequired, async (req, res) => 
       return date.toISOString().slice(0, 10);
     });
     const members = Array.from(counts.values()).sort((a, b) => b.total - a.total).slice(0, 6).map((member) => ({
-      userId: member.userId, role: member.role, total: member.total,
+      userId: member.userId, name: member.name, total: member.total,
       points: dates.map((date) => ({ date, value: member.byDay[date] || 0 })),
     }));
     return res.json({ dates, members });
