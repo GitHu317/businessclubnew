@@ -20,7 +20,7 @@ export default function FAQ() {
       .then((d) => setItems(d.faqs))
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const categories = ['All', ...Array.from(new Set(items.map((f) => f.category).filter(Boolean)))];
 

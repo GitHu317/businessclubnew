@@ -12,7 +12,7 @@ export default function AdminAnnouncements() {
     setLoading(true);
     api.listAnnouncements().then((d) => setItems(d.announcements)).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const save = async (e) => {
     e.preventDefault();

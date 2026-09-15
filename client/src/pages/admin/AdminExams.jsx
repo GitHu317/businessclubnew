@@ -22,7 +22,7 @@ export default function AdminExams() {
       setLoading(false);
     });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const startEdit = async (ex) => {
     setLoading(true);

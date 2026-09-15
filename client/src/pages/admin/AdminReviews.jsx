@@ -21,7 +21,7 @@ export default function AdminReviews() {
     setLoading(true);
     api.allReviews().then((d) => setReviews(d.reviews || [])).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const moderate = async (r, published) => {
     try {

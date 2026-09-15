@@ -41,7 +41,7 @@ export default function AdminGames() {
     setLoading(true);
     api.listGames().then((d) => setGames(d.games)).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const toggleRegistrations = async (game) => {
     if (expandedGameId === game.id) {

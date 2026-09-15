@@ -21,7 +21,7 @@ export default function AdminCourses() {
     setLoading(true);
     api.listCourses().then((d) => setCourses(d.courses)).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const saveCourse = async (data) => {
     if (editing === 'new') {
@@ -107,6 +107,7 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
     prerequisiteId: course?.prerequisiteId || '',
     thumbnailUrl: course?.thumbnailUrl || '',
     projectRequired: course?.projectRequired ?? false,
+    projectSubmissionType: course?.projectSubmissionType || 'BOTH',
     projectRequirements: course?.projectRequirements || '',
   });
   const [saving, setSaving] = useState(false);
@@ -182,8 +183,28 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
           Published (visible to students)
         </label>
         <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-3 space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-purple-900"><input type="checkbox" checked={form.projectRequired} onChange={(e) => setForm({ ...form, projectRequired: e.target.checked })} /> Require a project before the final exam</label>
-          {form.projectRequired && <><label className="label">Project requirements</label><textarea className="input" rows={4} required placeholder="Explain exactly what students must submit and how it will be evaluated." value={form.projectRequirements} onChange={(e) => setForm({ ...form, projectRequirements: e.target.value })} /><p className="text-xs text-purple-700">Students must submit a URL or ZIP file, and the assigned instructor must approve it before the exam unlocks.</p></>}
+          <label className="flex items-center gap-2 text-sm font-semibold text-purple-900">
+            <input type="checkbox" checked={form.projectRequired} onChange={(e) => setForm({ ...form, projectRequired: e.target.checked })} />
+            Require a project before the final exam
+          </label>
+          {form.projectRequired && (
+            <>
+              <div>
+                <label className="label">Accepted submission format</label>
+                <select className="input" value={form.projectSubmissionType} onChange={(e) => setForm({ ...form, projectSubmissionType: e.target.value })}>
+                  <option value="BOTH">URL or ZIP file</option>
+                  <option value="URL">URL only</option>
+                  <option value="ZIP">ZIP file only</option>
+                </select>
+                <p className="text-xs text-purple-700 mt-1">Students submit the project; instructors review it in Grading.</p>
+              </div>
+              <div>
+                <label className="label">Project requirements</label>
+                <textarea className="input" rows={4} required placeholder="Explain exactly what students must submit and how it will be evaluated." value={form.projectRequirements} onChange={(e) => setForm({ ...form, projectRequirements: e.target.value })} />
+                <p className="text-xs text-purple-700">The instructor or admin approves or rejects submissions before the exam unlocks.</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
       <div className="flex gap-2 mt-4">
@@ -241,7 +262,7 @@ function LessonManager({ courseId, slug }) {
 
   const blankLesson = () => ({
     title: '', content: '', videoUrl: '', durationMins: 10, order: sorted.length + 1,
-    media: [], project: { enabled: false, type: 'URL', url: '', fileName: '', fileData: '' }, quiz: { title: 'Quick Check', questions: [] },
+    media: [], quiz: { title: 'Quick Check', questions: [] },
   });
 
   const startEdit = (l) => {
@@ -252,7 +273,6 @@ function LessonManager({ courseId, slug }) {
       durationMins: l.durationMins,
       order: l.order,
       media: (l.media || []).filter((m) => String(m.type).toLowerCase() !== 'project').map((m) => ({ type: m.type, url: m.url, filename: m.filename || '', caption: m.caption || '' })),
-      project: (() => { const p = (l.media || []).find((m) => m.type === 'PROJECT'); return p ? { enabled: true, type: p.filename ? 'ZIP' : 'URL', url: p.filename ? '' : p.url, fileName: p.filename || '', fileData: p.filename && p.url.startsWith('data:') ? p.url : '' } : { enabled: false, type: 'URL', url: '', fileName: '', fileData: '' }; })(),
       quiz: l.quiz ? {
         title: l.quiz.title || 'Quick Check',
         questions: (l.quiz.questions || []).map((q) => ({
@@ -321,7 +341,7 @@ function buildLessonPayload(form) {
     videoUrl: form.videoUrl || null,
     durationMins: +form.durationMins,
     order: +form.order,
-    media: [...(form.media || []).filter((m) => m.url).map((m, i) => ({ ...m, order: i + 1 })), ...(form.project?.enabled && (form.project.url || form.project.fileData) ? [{ type: 'project', url: form.project.fileData || form.project.url, filename: form.project.fileName || null, caption: 'Lesson project' }] : [])],
+    media: (form.media || []).filter((m) => m.url).map((m, i) => ({ ...m, order: i + 1 })),
     quiz: form.quiz && form.quiz.questions && form.quiz.questions.length
       ? {
           title: form.quiz.title || 'Quick Check',
@@ -342,16 +362,6 @@ function LessonForm({ form, setForm, isEdit, saving, onSubmit, onCancel }) {
   const addMedia = () => setForm({ ...form, media: [...form.media, { type: 'IMAGE', url: '', caption: '' }] });
   const updateMedia = (i, field, val) => setForm({ ...form, media: form.media.map((m, xi) => xi === i ? { ...m, [field]: val } : m) });
   const removeMedia = (i) => setForm({ ...form, media: form.media.filter((_, xi) => xi !== i) });
-  const addProject = () => setForm({ ...form, project: { ...(form.project || {}), enabled: true, type: form.project?.type || 'URL', url: form.project?.url || '', fileName: form.project?.fileName || '', fileData: form.project?.fileData || '' } });
-  const updateProjectFile = (file) => {
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.zip')) return alert('Please choose a ZIP file.');
-    if (file.size > 5 * 1024 * 1024) return alert('ZIP files must be smaller than 5 MB.');
-    const reader = new FileReader();
-    reader.onload = () => setForm({ ...form, project: { ...form.project, enabled: true, type: 'ZIP', url: '', fileName: file.name, fileData: reader.result } });
-    reader.readAsDataURL(file);
-  };
-
   const addQuestion = () => setForm({ ...form, quiz: { ...form.quiz, questions: [...form.quiz.questions, { text: '', type: 'MCQ', options: ['', '', '', ''], correctIndex: 0, answer: '' }] } });
   const updateQuestion = (i, field, val) => setForm({ ...form, quiz: { ...form.quiz, questions: form.quiz.questions.map((q, xi) => xi === i ? { ...q, [field]: val } : q) } });
   const updateOption = (qi, oi, val) => setForm({ ...form, quiz: { ...form.quiz, questions: form.quiz.questions.map((q, xi) => xi === qi ? { ...q, options: q.options.map((o, xoi) => xoi === oi ? val : o) } : q) } });
@@ -395,12 +405,6 @@ function LessonForm({ form, setForm, isEdit, saving, onSubmit, onCancel }) {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Optional project resource */}
-      <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3">
-        <div className="flex items-center justify-between mb-2"><label className="label mb-0">Lesson project</label>{!form.project?.enabled && <button type="button" onClick={addProject} className="btn-secondary text-xs"><Plus className="w-3 h-3" /> Add project</button>}</div>
-        {form.project?.enabled && <div className="space-y-2"><div className="flex flex-col sm:flex-row gap-2"><select className="input py-1.5 text-sm w-full sm:w-40" value={form.project.type} onChange={(e) => setForm({ ...form, project: { ...form.project, type: e.target.value, url: '', fileName: '', fileData: '' } })}><option value="URL">Project URL</option><option value="ZIP">ZIP file</option></select><button type="button" onClick={() => setForm({ ...form, project: { enabled: false, type: 'URL', url: '', fileName: '', fileData: '' } })} className="text-red-500 text-xs">Remove</button></div>{form.project.type === 'URL' ? <input type="url" className="input" placeholder="https://github.com/... or project URL" value={form.project.url} onChange={(e) => setForm({ ...form, project: { ...form.project, url: e.target.value } })} /> : <><input type="file" accept=".zip" className="input" onChange={(e) => updateProjectFile(e.target.files?.[0])} /><p className="text-xs text-purple-700">ZIP files are limited to 5 MB. {form.project.fileName && `Selected: ${form.project.fileName}`}</p></>}</div>}
       </div>
 
       {/* Embedded mini-quiz */}

@@ -320,13 +320,6 @@ export default function CourseDetail() {
                   </div>
                 )}
 
-                {activeLesson.media?.filter((m) => m.type === 'PROJECT').map((project) => (
-                  <div key={project.id} className="mb-5 rounded-xl border border-purple-200 bg-purple-50/60 p-4">
-                    <h4 className="text-sm font-semibold text-purple-950 mb-2 flex items-center gap-1.5"><Paperclip className="w-4 h-4 text-purple-700" /> Lesson project</h4>
-                    {project.filename ? <a href={project.url} download={project.filename} className="inline-flex items-center gap-2 text-sm font-semibold text-purple-800 hover:underline">Download {project.filename}<ArrowRight className="w-4 h-4" /></a> : <a href={project.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-purple-800 hover:underline">Open project URL<ArrowRight className="w-4 h-4" /></a>}
-                  </div>
-                ))}
-
                 {activeLesson.quiz?.questions?.length > 0 && (
                   <LessonQuiz
                     quiz={activeLesson.quiz}
@@ -364,10 +357,10 @@ export default function CourseDetail() {
 
             {course.projectRequired && enrolled && (
               <div className="card p-6 border-purple-200 bg-purple-50/40">
-                <h3 className="font-bold text-brand-950 flex items-center gap-2 mb-2"><Paperclip className="w-5 h-5 text-purple-700" /> Required project</h3>
+                <h3 className="font-bold text-brand-950 flex items-center gap-2 mb-2"><Paperclip className="w-5 h-5 text-purple-700" /> {course.projectRequired ? 'Required project' : 'Optional project'}</h3>
                 <p className="text-sm text-slate-600 whitespace-pre-line mb-4">{course.projectRequirements || 'Submit your project for instructor review before taking the final exam.'}</p>
                 {project && <div className={`rounded-lg p-3 text-sm mb-3 ${project.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : project.status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}><strong>{project.status}</strong>{project.feedback && <div className="mt-1">{project.feedback}</div>}</div>}
-                <form onSubmit={submitProject} className="space-y-2"><input className="input" type="url" placeholder="Project URL (https://...)" value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} /><div className="text-xs text-slate-500 text-center">or upload a ZIP file (max 5 MB)</div><input className="input" type="file" accept=".zip" onChange={(e) => setProjectFile(e.target.files?.[0] || null)} /><button className="btn-primary text-sm" disabled={projectSubmitting}>{projectSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />} Submit project</button></form>
+                <form onSubmit={submitProject} className="space-y-2">{course.projectSubmissionType !== 'ZIP' && <input className="input" type="url" placeholder="Project URL (https://...)" value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} />}{course.projectSubmissionType === 'BOTH' && <div className="text-xs text-slate-500 text-center">or upload a ZIP file (max 5 MB)</div>}{course.projectSubmissionType !== 'URL' && <input className="input" type="file" accept=".zip" onChange={(e) => setProjectFile(e.target.files?.[0] || null)} />}{projectUrl || projectFile ? <button className="btn-primary text-sm" disabled={projectSubmitting}>{projectSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />} Submit project</button> : null}</form>
               </div>
             )}
 

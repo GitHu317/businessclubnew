@@ -13,7 +13,7 @@ export default function AdminBoard() {
     setLoading(true);
     api.listBoardMembers().then((d) => setMembers(d.members)).catch((err) => setPageError(err.message || 'Could not load board members.')).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const save = async (e) => {
     e.preventDefault();

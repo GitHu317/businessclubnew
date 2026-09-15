@@ -114,10 +114,10 @@ router.get('/project/:courseId', authRequired, async (req, res) => {
     const isManager = req.user.role === 'ADMIN' || course.creator?.userId === req.user.id;
     if (isManager) {
       const submissions = await prisma.projectSubmission.findMany({ where: { courseId: course.id }, include: { user: { select: { id: true, fullName: true, email: true } } }, orderBy: { submittedAt: 'desc' } });
-      return res.json({ course: { id: course.id, title: course.title, projectRequirements: course.projectRequirements }, submissions });
+      return res.json({ course: { id: course.id, title: course.title, projectRequired: course.projectRequired, projectSubmissionType: course.projectSubmissionType, projectRequirements: course.projectRequirements }, submissions });
     }
     const submission = await prisma.projectSubmission.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: course.id } } });
-    return res.json({ course: { id: course.id, title: course.title, projectRequired: course.projectRequired, projectRequirements: course.projectRequirements }, submission });
+    return res.json({ course: { id: course.id, title: course.title, projectRequired: course.projectRequired, projectSubmissionType: course.projectSubmissionType, projectRequirements: course.projectRequirements }, submission });
   } catch (err) { console.error('project status error:', err); return res.status(500).json({ error: 'Could not load project information.' }); }
 });
 
@@ -127,7 +127,11 @@ router.post('/project/:courseId', authRequired, async (req, res) => {
     const { projectUrl, fileName, fileData } = req.body;
     const course = await prisma.course.findUnique({ where: { id: req.params.courseId } });
     if (!course) return res.status(404).json({ error: 'Course not found.' });
+    const submissionType = course.projectSubmissionType || 'BOTH';
+    if (submissionType === 'URL' && !projectUrl) return res.status(400).json({ error: 'This course accepts a project URL.' });
+    if (submissionType === 'ZIP' && !fileData) return res.status(400).json({ error: 'This course accepts a ZIP file.' });
     if (!projectUrl && !fileData) return res.status(400).json({ error: 'Submit a valid project URL or a ZIP file.' });
+    if (projectUrl && fileData) return res.status(400).json({ error: 'Submit either a URL or a ZIP file, not both.' });
     if (projectUrl && !/^https?:\/\//i.test(projectUrl)) return res.status(400).json({ error: 'Project URL must begin with http:// or https://.' });
     if (fileData && (!fileName?.toLowerCase().endsWith('.zip') || fileData.length > 7_000_000)) return res.status(400).json({ error: 'Upload a ZIP file smaller than 5 MB.' });
     const submission = await prisma.projectSubmission.upsert({
@@ -203,7 +207,7 @@ router.get('/:slug', async (req, res) => {
 // POST /api/courses  (admin or approved creator)
 router.post('/', authRequired, async (req, res) => {
   try {
-    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectRequirements } = req.body;
+    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectSubmissionType, projectRequirements } = req.body;
     const isAdmin = req.user.role === 'ADMIN';
     const creator = await prisma.creatorProfile.findUnique({ where: { userId: req.user.id } });
     if (!isAdmin && !(creator && creator.approved)) {
@@ -225,6 +229,7 @@ router.post('/', authRequired, async (req, res) => {
         cardOrder: cardOrder || 0,
         prerequisiteId: prerequisiteId || null,
         projectRequired: Boolean(projectRequired),
+        projectSubmissionType: ['URL', 'ZIP', 'BOTH'].includes(projectSubmissionType) ? projectSubmissionType : 'BOTH',
         projectRequirements: projectRequirements || '',
         creatorId: creator ? creator.id : null,
       },
@@ -240,7 +245,7 @@ router.post('/', authRequired, async (req, res) => {
 // PUT /api/courses/:id  (admin or the course's creator)
 router.put('/:id', authRequired, async (req, res) => {
   try {
-    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectRequirements } = req.body;
+    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectSubmissionType, projectRequirements } = req.body;
     const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Course not found.' });
     const isAdmin = req.user.role === 'ADMIN';
@@ -248,7 +253,7 @@ router.put('/:id', authRequired, async (req, res) => {
     if (!isAdmin && !(creator && creator.id === existing.creatorId)) {
       return res.status(403).json({ error: 'Not authorised to edit this course.' });
     }
-    const data = { description, category, level, thumbnailUrl, published, prerequisiteId, projectRequired: Boolean(projectRequired), projectRequirements: projectRequirements || '' };
+    const data = { description, category, level, thumbnailUrl, published, prerequisiteId, projectRequired: Boolean(projectRequired), projectSubmissionType: ['URL', 'ZIP', 'BOTH'].includes(projectSubmissionType) ? projectSubmissionType : 'BOTH', projectRequirements: projectRequirements || '' };
     if (title) {
       data.title = title;
       data.slug = slugify(title) + '-' + Date.now().toString(36);

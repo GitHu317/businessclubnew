@@ -22,7 +22,7 @@ export default function AdminApplications() {
       .then((d) => setApps(d.applications || []))
       .finally(() => setLoading(false));
   };
-  useEffect(load, [filter]);
+  useEffect(() => { load(); }, [filter]);
 
   const review = async (app, status) => {
     const adminNote = status === 'REJECTED' ? prompt('Reason for rejection (optional):') || '' : '';

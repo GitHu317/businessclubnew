@@ -13,7 +13,7 @@ export default function AdminFAQ() {
     setLoading(true);
     api.listFAQ().then((d) => setFaqs(d.faqs || [])).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const save = async (data) => {
     try {

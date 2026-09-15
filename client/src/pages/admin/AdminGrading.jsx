@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 export default function AdminGrading() {
   const [attempts, setAttempts] = useState([]); const [projects, setProjects] = useState([]); const [loading, setLoading] = useState(true); const [grading, setGrading] = useState(null); const [projectGrading, setProjectGrading] = useState(null); const { user } = useAuth();
   const load = () => { setLoading(true); Promise.all([api.pendingGrades(), api.listCourses()]).then(async ([grades, courses]) => { setAttempts(grades.attempts || []); const owned = (courses.courses || []).filter((course) => user?.role === 'ADMIN' || course.creatorId === user?.creatorProfile?.id); const results = await Promise.all(owned.map((course) => api.getProject(course.id).catch(() => null))); setProjects(results.flatMap((result) => (result?.submissions || []).map((submission) => ({ ...submission, course: result.course })))); }).finally(() => setLoading(false)); };
-  useEffect(load, [user]);
+  useEffect(() => { load(); }, [user]);
   if (loading) return <Spinner label="Loading grading queue..." />;
   if (grading) return <ExamGrading attempt={grading} onBack={() => { setGrading(null); load(); }} />;
   if (projectGrading) return <ProjectGrading submission={projectGrading} onBack={() => { setProjectGrading(null); load(); }} />;
