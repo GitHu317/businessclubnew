@@ -63,25 +63,17 @@ export default function ExamPage() {
     const passed = result.attempt.passed;
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className={`card p-8 text-center ${passed ? 'border-emerald-300 bg-emerald-50/50' : isPending ? 'border-amber-300 bg-amber-50/50' : 'border-red-300 bg-red-50/50'}`}>
-          <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 ${passed ? 'bg-emerald-100 text-emerald-600' : isPending ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
-            {passed ? <Trophy className="w-10 h-10" /> : isPending ? <Clock className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
+        <div className={`card p-8 text-center ${passed ? 'border-emerald-300 bg-emerald-50/50' : 'border-red-300 bg-red-50/50'}`}>
+          <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 ${passed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+            {passed ? <Trophy className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
           </div>
           <h1 className="text-2xl font-bold text-brand-950">
-            {passed ? 'Congratulations, you passed! 🎉' : isPending ? 'Awaiting grading' : 'Not quite there yet'}
+            {passed ? 'Congratulations, you passed! 🎉' : 'Not quite there yet'}
           </h1>
-          {isPending ? (
-            <p className="text-slate-600 mt-2">
-              Your exam includes short-answer questions that require manual grading by an instructor.
-              Your final score and certificate will be issued once grading is complete.
-              Current auto-graded score: <span className="font-bold text-brand-950">{result.attempt.score}%</span>
-            </p>
-          ) : (
-            <p className="text-slate-600 mt-2">
-              You scored <span className="font-bold text-brand-950 text-lg">{result.attempt.score}%</span>
-              {' '}(passing mark: {exam.passingScore}%)
-            </p>
-          )}
+          <p className="text-slate-600 mt-2">
+            You scored <span className="font-bold text-brand-950 text-lg">{result.attempt.score}%</span>
+            {' '}(passing mark: {exam.passingScore}%)
+          </p>
 
           {passed && result.certificate && (
             <div className="mt-6 rounded-xl border border-gold-500/40 bg-white p-5">
@@ -100,7 +92,7 @@ export default function ExamPage() {
             </div>
           )}
 
-          {!passed && !isPending && (
+          {!passed && (
             <div className="mt-6">
               <button onClick={() => { setResult(null); setAnswers({}); setCurrent(0); }} className="btn-primary">
                 <RotateCcw className="w-4 h-4" /> Retake exam
@@ -108,8 +100,8 @@ export default function ExamPage() {
             </div>
           )}
 
-          {/* Detailed results — only for auto-graded questions */}
-          {!isPending && (
+          {/* Detailed results */}
+          {(
             <div className="mt-8 text-left">
               <h3 className="font-bold text-brand-950 mb-3">Review your answers</h3>
               <div className="space-y-3">
@@ -123,7 +115,7 @@ export default function ExamPage() {
                           <div className="flex-1">
                             <div className="font-medium text-brand-950 text-sm">{i + 1}. {q.text}</div>
                             <div className="text-sm text-slate-600 mt-1">Your answer: "{answers[q.id]}"</div>
-                            <div className="text-xs text-amber-600 mt-1">To be graded by instructor</div>
+                            <div className="text-xs text-slate-500 mt-1">Automatically graded</div>
                           </div>
                         </div>
                       </div>
@@ -275,7 +267,7 @@ export default function ExamPage() {
                 onChange={(e) => setAnswer(q.id, e.target.value)}
               />
               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" /> This question will be graded manually by an instructor after submission.
+                <AlertCircle className="w-3.5 h-3.5" /> This question is graded automatically after submission.
               </p>
             </div>
           )}
