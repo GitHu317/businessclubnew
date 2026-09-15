@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma.js';
-import { authRequired, adminRequired } from '../middleware/auth.js';
+import { authRequired, adminRequired, presidentRequired } from '../middleware/auth.js';
 import { logActivity, safeBody } from '../utils/activityLog.js';
 import { awardXp, XP_REWARDS } from '../utils/gamification.js';
 
@@ -106,6 +106,67 @@ router.get('/tags/all', async (req, res) => {
   }
 });
 
+// GET /api/courses/project/:courseId  (student's project status or instructor submissions)
+router.get('/project/:courseId', authRequired, async (req, res) => {
+  try {
+    const course = await prisma.course.findUnique({ where: { id: req.params.courseId }, include: { creator: true } });
+    if (!course) return res.status(404).json({ error: 'Course not found.' });
+    const isManager = req.user.role === 'ADMIN' || course.creator?.userId === req.user.id;
+    if (isManager) {
+      const submissions = await prisma.projectSubmission.findMany({ where: { courseId: course.id }, include: { user: { select: { id: true, fullName: true, email: true } } }, orderBy: { submittedAt: 'desc' } });
+      return res.json({ course: { id: course.id, title: course.title, projectRequirements: course.projectRequirements }, submissions });
+    }
+    const submission = await prisma.projectSubmission.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: course.id } } });
+    return res.json({ course: { id: course.id, title: course.title, projectRequired: course.projectRequired, projectRequirements: course.projectRequirements }, submission });
+  } catch (err) { console.error('project status error:', err); return res.status(500).json({ error: 'Could not load project information.' }); }
+});
+
+// POST /api/courses/project/:courseId  (student submits URL or a small ZIP as base64)
+router.post('/project/:courseId', authRequired, async (req, res) => {
+  try {
+    const { projectUrl, fileName, fileData } = req.body;
+    const course = await prisma.course.findUnique({ where: { id: req.params.courseId } });
+    if (!course) return res.status(404).json({ error: 'Course not found.' });
+    if (!projectUrl && !fileData) return res.status(400).json({ error: 'Submit a valid project URL or a ZIP file.' });
+    if (projectUrl && !/^https?:\/\//i.test(projectUrl)) return res.status(400).json({ error: 'Project URL must begin with http:// or https://.' });
+    if (fileData && (!fileName?.toLowerCase().endsWith('.zip') || fileData.length > 7_000_000)) return res.status(400).json({ error: 'Upload a ZIP file smaller than 5 MB.' });
+    const submission = await prisma.projectSubmission.upsert({
+      where: { userId_courseId: { userId: req.user.id, courseId: course.id } },
+      create: { userId: req.user.id, courseId: course.id, projectUrl: projectUrl || null, fileName: fileName || null, fileData: fileData || null, status: 'PENDING' },
+      update: { projectUrl: projectUrl || null, fileName: fileName || null, fileData: fileData || null, status: 'PENDING', feedback: null, evaluation: null, gradedBy: null, gradedAt: null, submittedAt: new Date() },
+    });
+    await logActivity({ req, userId: req.user.id, action: 'CREATE', resourceType: 'PROJECT', resourceId: submission.id, description: `Submitted project for ${course.title}` });
+    return res.status(201).json({ submission: { ...submission, fileData: undefined } });
+  } catch (err) { console.error('project submission error:', err); return res.status(500).json({ error: 'Could not submit project.' }); }
+});
+
+// POST /api/courses/project/:courseId/:submissionId/grade (course instructor or admin)
+router.post('/project/:courseId/:submissionId/grade', authRequired, async (req, res) => {
+  try {
+    const { status, feedback, evaluation, attachments } = req.body;
+    if (!['APPROVED', 'REJECTED'].includes(status)) return res.status(400).json({ error: 'Choose APPROVED or REJECTED.' });
+    const course = await prisma.course.findUnique({ where: { id: req.params.courseId }, include: { creator: true } });
+    if (!course || (req.user.role !== 'ADMIN' && course.creator?.userId !== req.user.id)) return res.status(403).json({ error: 'Only the assigned instructor or an admin can grade this project.' });
+    const rejectionMessage = "Your project didn't qualify the criteria of the project. Please review the requirements and send your project again.";
+    const submission = await prisma.projectSubmission.update({ where: { id: req.params.submissionId }, data: { status, feedback: feedback || (status === 'REJECTED' ? rejectionMessage : null), evaluation: JSON.stringify(evaluation || {}), attachments: JSON.stringify(attachments || []), gradedBy: req.user.id, gradedAt: new Date() }, include: { user: { select: { id: true, fullName: true, email: true } } } });
+    await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'PROJECT', resourceId: submission.id, description: `${status === 'APPROVED' ? 'Approved' : 'Rejected'} project for ${submission.user.fullName}` });
+    return res.json({ submission: { ...submission, fileData: undefined } });
+  } catch (err) { console.error('project grading error:', err); return res.status(500).json({ error: 'Could not grade project.' }); }
+});
+
+// GET /api/courses/project/:courseId/:submissionId/file (instructor download)
+router.get('/project/:courseId/:submissionId/file', authRequired, async (req, res) => {
+  try {
+    const submission = await prisma.projectSubmission.findUnique({ where: { id: req.params.submissionId }, include: { course: { include: { creator: true } } } });
+    if (!submission || (req.user.role !== 'ADMIN' && submission.course.creator?.userId !== req.user.id)) return res.status(403).json({ error: 'Not authorised.' });
+    if (!submission.fileData) return res.status(404).json({ error: 'No ZIP file attached.' });
+    const base64 = submission.fileData.split(',').pop();
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${(submission.fileName || 'project.zip').replace(/[^a-zA-Z0-9._-]/g, '_')}"`);
+    return res.send(Buffer.from(base64, 'base64'));
+  } catch (err) { return res.status(500).json({ error: 'Could not download project file.' }); }
+});
+
 // GET /api/courses/:slug  (course detail with lessons + exams + creator + reviews + prereq)
 router.get('/:slug', async (req, res) => {
   try {
@@ -142,7 +203,7 @@ router.get('/:slug', async (req, res) => {
 // POST /api/courses  (admin or approved creator)
 router.post('/', authRequired, async (req, res) => {
   try {
-    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId } = req.body;
+    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectRequirements } = req.body;
     const isAdmin = req.user.role === 'ADMIN';
     const creator = await prisma.creatorProfile.findUnique({ where: { userId: req.user.id } });
     if (!isAdmin && !(creator && creator.approved)) {
@@ -163,6 +224,8 @@ router.post('/', authRequired, async (req, res) => {
         tags: JSON.stringify(tags || []),
         cardOrder: cardOrder || 0,
         prerequisiteId: prerequisiteId || null,
+        projectRequired: Boolean(projectRequired),
+        projectRequirements: projectRequirements || '',
         creatorId: creator ? creator.id : null,
       },
     });
@@ -177,7 +240,7 @@ router.post('/', authRequired, async (req, res) => {
 // PUT /api/courses/:id  (admin or the course's creator)
 router.put('/:id', authRequired, async (req, res) => {
   try {
-    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId } = req.body;
+    const { title, description, category, level, thumbnailUrl, published, tags, cardOrder, prerequisiteId, projectRequired, projectRequirements } = req.body;
     const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Course not found.' });
     const isAdmin = req.user.role === 'ADMIN';
@@ -185,7 +248,7 @@ router.put('/:id', authRequired, async (req, res) => {
     if (!isAdmin && !(creator && creator.id === existing.creatorId)) {
       return res.status(403).json({ error: 'Not authorised to edit this course.' });
     }
-    const data = { description, category, level, thumbnailUrl, published, prerequisiteId };
+    const data = { description, category, level, thumbnailUrl, published, prerequisiteId, projectRequired: Boolean(projectRequired), projectRequirements: projectRequirements || '' };
     if (title) {
       data.title = title;
       data.slug = slugify(title) + '-' + Date.now().toString(36);
@@ -202,7 +265,7 @@ router.put('/:id', authRequired, async (req, res) => {
 });
 
 // DELETE /api/courses/:id  (admin)
-router.delete('/:id', authRequired, adminRequired, async (req, res) => {
+router.delete('/:id', authRequired, presidentRequired, async (req, res) => {
   try {
     const course = await prisma.course.findUnique({ where: { id: req.params.id } });
     await prisma.course.delete({ where: { id: req.params.id } });

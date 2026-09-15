@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma.js';
-import { authRequired, adminRequired } from '../middleware/auth.js';
+import { authRequired, adminRequired, presidentRequired } from '../middleware/auth.js';
 import { generateCertificateId, generateVerificationHash } from '../utils/certificate.js';
 import { logActivity, safeBody } from '../utils/activityLog.js';
 import { awardXp, XP_REWARDS } from '../utils/gamification.js';
@@ -77,6 +77,10 @@ router.get('/:id', authRequired, async (req, res) => {
       },
     });
     if (!exam) return res.status(404).json({ error: 'Exam not found.' });
+    const enrollment = await prisma.enrollment.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: exam.courseId } } });
+    const approvedProject = exam.course.projectRequired ? await prisma.projectSubmission.findFirst({ where: { userId: req.user.id, courseId: exam.courseId, status: 'APPROVED' } }) : true;
+    const canTake = Boolean(enrollment?.completed && approvedProject);
+    const examGateReason = !enrollment?.completed ? 'Complete all lessons and lesson quizzes before taking the final exam.' : (!approvedProject ? 'Submit your project and wait for instructor approval before taking the final exam.' : null);
 
     const isAdmin = req.user && req.user.role === 'ADMIN';
 
@@ -99,6 +103,9 @@ router.get('/:id', authRequired, async (req, res) => {
         courseId: exam.courseId,
         course: exam.course,
         questions: safeQuestions,
+        canTake,
+        examGateReason,
+        projectRequired: exam.course.projectRequired,
       },
     });
   } catch (err) {
@@ -177,7 +184,7 @@ router.put('/:id', authRequired, adminRequired, async (req, res) => {
 });
 
 // DELETE /api/exams/:id  (admin)
-router.delete('/:id', authRequired, adminRequired, async (req, res) => {
+router.delete('/:id', authRequired, presidentRequired, async (req, res) => {
   try {
     const exam = await prisma.exam.findUnique({ where: { id: req.params.id } });
     await prisma.exam.delete({ where: { id: req.params.id } });
@@ -201,6 +208,12 @@ router.post('/:id/submit', authRequired, async (req, res) => {
       include: { questions: true, course: true },
     });
     if (!exam) return res.status(404).json({ error: 'Exam not found.' });
+    const enrollment = await prisma.enrollment.findUnique({ where: { userId_courseId: { userId: req.user.id, courseId: exam.courseId } } });
+    if (!enrollment?.completed) return res.status(403).json({ error: 'Complete all lessons and lesson quizzes before taking the final exam.' });
+    if (exam.course.projectRequired) {
+      const approvedProject = await prisma.projectSubmission.findFirst({ where: { userId: req.user.id, courseId: exam.courseId, status: 'APPROVED' } });
+      if (!approvedProject) return res.status(403).json({ error: 'Submit your project and wait for instructor approval before taking the final exam.' });
+    }
 
     const answerMap = new Map(
       answers.map((a) => [

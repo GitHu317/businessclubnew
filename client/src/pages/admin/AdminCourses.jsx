@@ -10,6 +10,7 @@ import {
 export default function AdminCourses() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const isPresident = user?.bodRole === 'PRESIDENT';
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +78,7 @@ export default function AdminCourses() {
               {(isAdmin || user?.creatorProfile?.id === c.creatorId) && (
                 <div className="flex gap-1">
                   <button onClick={() => setEditing(c)} className="btn-ghost p-2"><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => deleteCourse(c)} className="btn-ghost p-2 text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                  {isPresident && <button onClick={() => deleteCourse(c)} className="btn-ghost p-2 text-red-600 hover:bg-red-50" title="President only"><Trash2 className="w-4 h-4" /></button>}
                 </div>
               )}
             </div>
@@ -105,6 +106,8 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
     cardOrder: course?.cardOrder || 0,
     prerequisiteId: course?.prerequisiteId || '',
     thumbnailUrl: course?.thumbnailUrl || '',
+    projectRequired: course?.projectRequired ?? false,
+    projectRequirements: course?.projectRequirements || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -178,6 +181,10 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
           <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
           Published (visible to students)
         </label>
+        <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-purple-900"><input type="checkbox" checked={form.projectRequired} onChange={(e) => setForm({ ...form, projectRequired: e.target.checked })} /> Require a project before the final exam</label>
+          {form.projectRequired && <><label className="label">Project requirements</label><textarea className="input" rows={4} required placeholder="Explain exactly what students must submit and how it will be evaluated." value={form.projectRequirements} onChange={(e) => setForm({ ...form, projectRequirements: e.target.value })} /><p className="text-xs text-purple-700">Students must submit a URL or ZIP file, and the assigned instructor must approve it before the exam unlocks.</p></>}
+        </div>
       </div>
       <div className="flex gap-2 mt-4">
         <button type="submit" disabled={saving} className="btn-primary">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save</button>

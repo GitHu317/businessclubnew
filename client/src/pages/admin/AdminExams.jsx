@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { Spinner, EmptyState } from '../../components/Common.jsx';
 import { Award, Plus, Trash2, X, Save, Loader2, BookOpen, Edit3 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function AdminExams() {
+  const { user } = useAuth();
+  const isPresident = user?.bodRole === 'PRESIDENT';
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(null);
@@ -176,7 +179,7 @@ export default function AdminExams() {
                     </div>
                     <div className="flex items-center gap-1">
                       <button onClick={() => startEdit(ex)} className="btn-ghost p-1.5 text-brand-700 hover:bg-brand-50" title="Edit exam"><Edit3 className="w-4 h-4" /></button>
-                      <button onClick={() => del(ex)} className="btn-ghost p-1.5 text-red-600 hover:bg-red-50" title="Delete exam"><Trash2 className="w-4 h-4" /></button>
+                      {isPresident && <button onClick={() => del(ex)} className="btn-ghost p-1.5 text-red-600 hover:bg-red-50" title="President only"><Trash2 className="w-4 h-4" /></button>}
                     </div>
                   </div>
                 ))}

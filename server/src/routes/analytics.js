@@ -17,6 +17,13 @@ router.get('/overview', authRequired, adminRequired, async (req, res) => {
     const totalExams = await prisma.exam.count();
     const totalGames = await prisma.businessGame.count();
     const totalReviews = await prisma.review.count();
+    const totalActivityEvents = await prisma.activityLog.count();
+    const totalGameRegistrations = await prisma.gameRegistration.count();
+    const completedEnrollments = await prisma.enrollment.count({ where: { completed: true } });
+    const examAttempts = await prisma.examAttempt.findMany({ select: { score: true, passed: true, submittedAt: true } });
+    const courseRows = await prisma.course.findMany({ select: { id: true, title: true, _count: { select: { enrollments: true, certificates: true } }, enrollments: { select: { completed: true } } } });
+    const gameRows = await prisma.businessGame.findMany({ select: { id: true, title: true, _count: { select: { registrations: true } } } });
+    const loginEvents = await prisma.activityLog.count({ where: { action: 'LOGIN' } });
 
     // Membership status breakdown
     const pendingMembers = await prisma.user.count({ where: { membershipStatus: 'PENDING' } });
@@ -41,6 +48,10 @@ router.get('/overview', authRequired, adminRequired, async (req, res) => {
       },
       membership: { pending: pendingMembers, active: activeMembers, verified: verifiedMembers },
       certificates: { professional: professionalCerts, memberOnly: memberOnlyCerts },
+      engagement: { activityEvents: totalActivityEvents, loginEvents, gameRegistrations: totalGameRegistrations },
+      courses: { completedEnrollments, completionRate: totalEnrollments ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0, data: courseRows.map((course) => ({ title: course.title, enrollments: course.enrollments.length, completed: course.enrollments.filter((e) => e.completed).length, certificates: course._count.certificates })) },
+      exams: { attempts: examAttempts.length, passed: examAttempts.filter((a) => a.passed).length, averageScore: examAttempts.length ? Math.round(examAttempts.reduce((sum, a) => sum + a.score, 0) / examAttempts.length) : 0, data: examAttempts },
+      games: { registrations: totalGameRegistrations, data: gameRows.map((game) => ({ title: game.title, registrations: game._count.registrations })) },
     });
   } catch (err) {
     console.error(err);

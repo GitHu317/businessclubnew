@@ -1,147 +1,19 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { Spinner, EmptyState } from '../../components/Common.jsx';
-import { PenLine, Check, X, Loader2, Clock, User } from 'lucide-react';
+import { PenLine, Check, X, Loader2, Clock, User, Paperclip } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function AdminGrading() {
-  const [attempts, setAttempts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [grading, setGrading] = useState(null); // attempt being graded
-  const [busy, setBusy] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    api.pendingGrades()
-      .then((d) => setAttempts(d.attempts || []))
-      .finally(() => setLoading(false));
-  };
-  useEffect(load, []);
-
-  if (loading) return <Spinner label="Loading pending grades..." />;
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-brand-950 flex items-center gap-2"><PenLine className="w-5 h-5" /> Manual Grading Queue</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Exam attempts containing short-answer questions awaiting your evaluation.
-          {attempts.length > 0 && <span className="text-amber-600 font-semibold"> {attempts.length} pending</span>}
-        </p>
-      </div>
-
-      {attempts.length === 0 ? (
-        <EmptyState icon={PenLine} title="Nothing to grade" description="Short-answer exam submissions will appear here for manual evaluation." />
-      ) : grading ? (
-        <GradingPanel attempt={grading} onBack={() => { setGrading(null); load(); }} busy={busy} setBusy={setBusy} />
-      ) : (
-        <div className="space-y-3">
-          {attempts.map((a) => (
-            <div key={a.id} className="card p-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-                  <PenLine className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-semibold text-brand-950 truncate flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-400" /> {a.user?.fullName}
-                  </div>
-                  <div className="text-xs text-slate-500 truncate">{a.exam?.title} — {a.exam?.course?.title}</div>
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5"><Clock className="w-2.5 h-2.5" /> Submitted {new Date(a.submittedAt).toLocaleString()}</div>
-                </div>
-              </div>
-              <button onClick={() => setGrading(a)} className="btn-primary text-sm">Grade now</button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  const [attempts, setAttempts] = useState([]); const [projects, setProjects] = useState([]); const [loading, setLoading] = useState(true); const [grading, setGrading] = useState(null); const [projectGrading, setProjectGrading] = useState(null); const { user } = useAuth();
+  const load = () => { setLoading(true); Promise.all([api.pendingGrades(), api.listCourses()]).then(async ([grades, courses]) => { setAttempts(grades.attempts || []); const owned = (courses.courses || []).filter((course) => user?.role === 'ADMIN' || course.creatorId === user?.creatorProfile?.id); const results = await Promise.all(owned.map((course) => api.getProject(course.id).catch(() => null))); setProjects(results.flatMap((result) => (result?.submissions || []).map((submission) => ({ ...submission, course: result.course })))); }).finally(() => setLoading(false)); };
+  useEffect(load, [user]);
+  if (loading) return <Spinner label="Loading grading queue..." />;
+  if (grading) return <ExamGrading attempt={grading} onBack={() => { setGrading(null); load(); }} />;
+  if (projectGrading) return <ProjectGrading submission={projectGrading} onBack={() => { setProjectGrading(null); load(); }} />;
+  return <div className="space-y-6"><div><h2 className="text-xl font-bold text-brand-950 flex items-center gap-2"><PenLine className="w-5 h-5" /> Grading</h2><p className="text-sm text-slate-500">Review assigned exam answers and course projects.</p></div><section><h3 className="font-bold text-brand-950 mb-3">Pending project submissions</h3>{projects.length === 0 ? <p className="text-sm text-slate-500">No project submissions are waiting.</p> : <div className="space-y-3">{projects.map((item) => <div key={item.id} className="card p-4 flex items-center justify-between gap-3"><div><div className="font-semibold text-brand-950 flex items-center gap-2"><Paperclip className="w-4 h-4" />{item.user.fullName}</div><div className="text-xs text-slate-500">{item.course.title} • {item.status}</div><div className="text-xs text-slate-400">{new Date(item.submittedAt).toLocaleString()}</div></div><button onClick={() => setProjectGrading(item)} className="btn-primary text-sm">Review project</button></div>)}</div>}</section><section><h3 className="font-bold text-brand-950 mb-3">Pending exam answers</h3>{attempts.length === 0 ? <EmptyState icon={PenLine} title="Nothing to grade" description="Short-answer exam submissions will appear here." /> : <div className="space-y-3">{attempts.map((attempt) => <div key={attempt.id} className="card p-4 flex items-center justify-between gap-3"><div><div className="font-semibold text-brand-950"><User className="w-3.5 h-3.5 inline mr-1" />{attempt.user?.fullName}</div><div className="text-xs text-slate-500">{attempt.exam?.title} — {attempt.exam?.course?.title}</div><div className="text-xs text-slate-400"><Clock className="w-3 h-3 inline" /> {new Date(attempt.submittedAt).toLocaleString()}</div></div><button onClick={() => setGrading(attempt)} className="btn-primary text-sm">Grade now</button></div>)}</div>}</section></div>;
 }
 
-function GradingPanel({ attempt, onBack, busy, setBusy }) {
-  // Only short-answer questions have GradeResult rows needing manual grading
-  const pendingQuestions = attempt.grades || [];
-  const [grades, setGrades] = useState(
-    pendingQuestions.map((g) => ({ questionId: g.questionId, awarded: g.awarded ?? 0, feedback: g.feedback || '', maxPoints: g.question?.points || 1 }))
-  );
+function ProjectGrading({ submission, onBack }) { const [feedback, setFeedback] = useState(submission.feedback || ''); const [evaluation, setEvaluation] = useState(''); const [busy, setBusy] = useState(false); const review = async (status) => { setBusy(true); try { await api.gradeProject(submission.courseId, submission.id, { status, feedback, evaluation: { review: evaluation } }); onBack(); } catch (error) { alert(error.message); } finally { setBusy(false); } }; return <div className="space-y-4"><button onClick={onBack} className="text-sm text-slate-500">← Back to grading</button><div className="card p-5"><h3 className="font-bold text-brand-950">Project review: {submission.user.fullName}</h3><p className="text-sm text-slate-500">{submission.course.title}</p><div className="mt-3 rounded-lg bg-purple-50 border border-purple-200 p-3 text-sm whitespace-pre-line">{submission.course.projectRequirements || 'Evaluate the work against the course project requirements.'}</div>{submission.projectUrl && <a className="text-brand-700 underline text-sm block mt-3" href={submission.projectUrl} target="_blank" rel="noreferrer">Open submitted project URL</a>}{submission.fileData && <a className="btn-secondary text-sm inline-flex mt-2" download={submission.fileName || 'project.zip'} href={submission.fileData}>Download ZIP file</a>}</div><div className="card p-5 space-y-3"><label className="label">Evaluation questions and notes</label><textarea className="input" rows={4} value={evaluation} onChange={(e) => setEvaluation(e.target.value)} placeholder="Explain how the work met each requirement." /><label className="label">Feedback for student</label><textarea className="input" rows={4} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Give specific, constructive feedback." /><div className="flex gap-2"><button disabled={busy} onClick={() => review('APPROVED')} className="btn-primary"><Check className="w-4 h-4" /> Approve and unlock exam</button><button disabled={busy} onClick={() => review('REJECTED')} className="btn-secondary text-red-700"><X className="w-4 h-4" /> Reject</button></div><p className="text-xs text-slate-500">Rejected students receive: “Your project didn't qualify the criteria of the project. Please review the requirements and send your project again.”</p></div></div>; }
 
-  // Find the student's answer for each pending question
-  let answers = [];
-  try { answers = JSON.parse(attempt.answers || '[]'); } catch { answers = []; }
-  const answerMap = new Map(answers.map((a) => [a.questionId, a.value]));
-
-  const submit = async () => {
-    setBusy(true);
-    try {
-      await api.gradeAttempt(attempt.id, grades.map((g) => ({ questionId: g.questionId, awarded: +g.awarded, feedback: g.feedback })));
-      onBack();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <button onClick={onBack} className="text-sm text-slate-500 hover:text-brand-700 flex items-center gap-1">← Back to queue</button>
-
-      <div className="card p-5">
-        <h3 className="font-bold text-brand-950">{attempt.exam?.title}</h3>
-        <p className="text-xs text-slate-500">{attempt.exam?.course?.title} • Student: {attempt.user?.fullName}</p>
-        <p className="text-xs text-slate-400 mt-1">Passing score: {attempt.exam?.passingScore}%</p>
-      </div>
-
-      <div className="space-y-3">
-        {grades.map((g, i) => {
-          const studentAnswer = answerMap.get(g.questionId) || '—';
-          const question = pendingQuestions.find((pq) => pq.questionId === g.questionId)?.question;
-          return (
-            <div key={i} className="card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold text-brand-700 bg-brand-50 rounded px-2 py-0.5">Q{i + 1}</span>
-                <span className="text-[10px] text-slate-400">Short Answer • {g.maxPoints} pts</span>
-              </div>
-              <div className="text-sm font-medium text-brand-950 mb-2">{question?.text || 'Question'}</div>
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 mb-3">
-                <div className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Student's Answer</div>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">{studentAnswer}</p>
-              </div>
-              <div className="grid sm:grid-cols-[120px_1fr] gap-3">
-                <div>
-                  <label className="label">Points Awarded</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max={g.maxPoints}
-                    className="input"
-                    value={g.awarded}
-                    onChange={(e) => setGrades((gs) => gs.map((x, xi) => xi === i ? { ...x, awarded: e.target.value } : x))}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Max: {g.maxPoints}</p>
-                </div>
-                <div>
-                  <label className="label">Feedback (optional)</label>
-                  <textarea
-                    className="input"
-                    rows={2}
-                    value={g.feedback}
-                    onChange={(e) => setGrades((gs) => gs.map((x, xi) => xi === i ? { ...x, feedback: e.target.value } : x))}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex gap-2">
-        <button onClick={submit} disabled={busy} className="btn-primary">
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          Submit grades &amp; finalise
-        </button>
-        <button onClick={onBack} className="btn-secondary"><X className="w-4 h-4" /> Cancel</button>
-      </div>
-    </div>
-  );
-}
+function ExamGrading({ attempt, onBack }) { const pending = attempt.grades || []; const [grades, setGrades] = useState(pending.map((g) => ({ questionId: g.questionId, awarded: g.awarded ?? 0, feedback: g.feedback || '', maxPoints: g.question?.points || 1 }))); let answers = []; try { answers = JSON.parse(attempt.answers || '[]'); } catch {} const answerMap = new Map(answers.map((a) => [a.questionId, a.value])); const [busy, setBusy] = useState(false); const submit = async () => { setBusy(true); try { await api.gradeAttempt(attempt.id, grades.map((g) => ({ questionId: g.questionId, awarded: +g.awarded, feedback: g.feedback }))); onBack(); } catch (error) { alert(error.message); } finally { setBusy(false); } }; return <div className="space-y-4"><button onClick={onBack} className="text-sm text-slate-500">← Back to grading</button><div className="card p-5"><h3 className="font-bold text-brand-950">{attempt.exam?.title}</h3><p className="text-xs text-slate-500">{attempt.exam?.course?.title} • {attempt.user?.fullName}</p></div>{grades.map((grade, index) => { const question = pending.find((item) => item.questionId === grade.questionId)?.question; return <div key={grade.questionId} className="card p-5"><div className="text-sm font-medium text-brand-950">Q{index + 1}. {question?.text}</div><div className="rounded-lg bg-slate-50 p-3 my-3 text-sm">{answerMap.get(grade.questionId) || '—'}</div><div className="grid sm:grid-cols-[120px_1fr] gap-3"><input type="number" className="input" min="0" max={grade.maxPoints} value={grade.awarded} onChange={(e) => setGrades((all) => all.map((item, i) => i === index ? { ...item, awarded: e.target.value } : item))} /><textarea className="input" rows={2} placeholder="Feedback" value={grade.feedback} onChange={(e) => setGrades((all) => all.map((item, i) => i === index ? { ...item, feedback: e.target.value } : item))} /></div></div>; })}<button onClick={submit} disabled={busy} className="btn-primary">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Submit grades</button></div>; }

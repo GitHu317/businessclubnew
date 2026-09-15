@@ -75,6 +75,14 @@ function DonutStat({ label, value, total, color }) {
   );
 }
 
+function PieChart({ segments }) {
+  const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
+  let cursor = 0;
+  const colors = ['#0f766e', '#f59e0b', '#6366f1', '#ef4444'];
+  const stops = segments.map((item, index) => { const start = cursor; cursor += (item.value / total) * 100; return `${colors[index % colors.length]} ${start}% ${cursor}%`; }).join(', ');
+  return <div className="flex items-center gap-5"><div className="w-28 h-28 rounded-full" style={{ background: `conic-gradient(${stops})` }} /><div className="space-y-1">{segments.map((item, index) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />{item.label}: <strong>{item.value}</strong></div>)}</div></div>;
+}
+
 export default function AdminAnalytics() {
   const [overview, setOverview] = useState(null);
   const [registrations, setRegistrations] = useState(null);
@@ -98,7 +106,7 @@ export default function AdminAnalytics() {
   if (loading) return <Spinner label="Loading analytics..." />;
   if (error || !overview) return <ErrorState message={error || 'Could not load analytics.'} />;
 
-  const { totals, membership, certificates } = overview;
+  const { totals, membership, certificates, engagement = {}, courses = {}, exams = {}, games = {} } = overview;
   const memberTotal = membership.pending + membership.active + membership.verified;
 
   const statCards = [
@@ -106,6 +114,8 @@ export default function AdminAnalytics() {
     { label: 'Courses', value: totals.courses, icon: BookOpen, color: 'bg-emerald-50 text-emerald-700' },
     { label: 'Enrollments', value: totals.enrollments, icon: TrendingUp, color: 'bg-purple-50 text-purple-700' },
     { label: 'Certificates', value: totals.certificates, icon: Award, color: 'bg-gold-500/20 text-gold-600' },
+    { label: 'Exam attempts', value: exams.attempts || 0, icon: Clock, color: 'bg-amber-50 text-amber-700' },
+    { label: 'Game registrations', value: games.registrations || 0, icon: Star, color: 'bg-purple-50 text-purple-700' },
   ];
 
   return (
@@ -165,6 +175,23 @@ export default function AdminAnalytics() {
             valueKey="enrollments"
             color="bg-gradient-to-r from-brand-500 to-brand-700"
           />
+        </div>
+
+        <div className="card p-6">
+          <h3 className="font-bold text-brand-950 mb-4">Membership distribution</h3>
+          <PieChart segments={[{ label: 'Pending', value: membership.pending }, { label: 'Active', value: membership.active }, { label: 'Verified', value: membership.verified }]} />
+        </div>
+        <div className="card p-6">
+          <h3 className="font-bold text-brand-950 mb-4">Engagement and exams</h3>
+          <div className="grid grid-cols-2 gap-3 text-center"><div className="rounded-lg bg-brand-50 p-3"><div className="text-2xl font-bold text-brand-800">{engagement.loginEvents || 0}</div><div className="text-xs text-slate-500">Sign-ins</div></div><div className="rounded-lg bg-purple-50 p-3"><div className="text-2xl font-bold text-purple-800">{engagement.activityEvents || 0}</div><div className="text-xs text-slate-500">Activity events</div></div><div className="rounded-lg bg-emerald-50 p-3"><div className="text-2xl font-bold text-emerald-800">{courses.completionRate || 0}%</div><div className="text-xs text-slate-500">Course completion</div></div><div className="rounded-lg bg-amber-50 p-3"><div className="text-2xl font-bold text-amber-800">{exams.averageScore || 0}%</div><div className="text-xs text-slate-500">Average exam score</div></div></div>
+        </div>
+        <div className="card p-6 lg:col-span-2">
+          <h3 className="font-bold text-brand-950 mb-4">Course completion rates</h3>
+          <BarChart data={(courses.data || []).slice(0, 10).map((item) => ({ ...item, rate: item.enrollments ? Math.round((item.completed / item.enrollments) * 100) : 0 }))} labelKey="title" valueKey="rate" color="bg-gradient-to-r from-emerald-500 to-teal-700" />
+        </div>
+        <div className="card p-6 lg:col-span-2">
+          <h3 className="font-bold text-brand-950 mb-4">Game participation</h3>
+          <BarChart data={(games.data || []).slice(0, 10)} labelKey="title" valueKey="registrations" color="bg-gradient-to-r from-purple-500 to-indigo-700" />
         </div>
 
         {/* Certificate breakdown */}
