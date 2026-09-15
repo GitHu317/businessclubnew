@@ -347,6 +347,37 @@ router.delete('/admin/users/:id', authRequired, adminRequired, async (req, res) 
   }
 });
 
+// PUT /api/dashboard/admin/users/:id  (President only)
+router.put('/admin/users/:id', authRequired, adminRequired, async (req, res) => {
+  try {
+    if (req.user.bodRole !== 'PRESIDENT') return res.status(403).json({ error: 'Only the President can edit members.' });
+    const { fullName, email, studentId, department, membershipStatus, membershipTier } = req.body;
+    if (!fullName?.trim() || !email?.trim()) return res.status(400).json({ error: 'Full name and email are required.' });
+    const member = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, fullName: true } });
+    if (!member) return res.status(404).json({ error: 'Member not found.' });
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailOwner = await prisma.user.findFirst({ where: { email: normalizedEmail, NOT: { id: req.params.id } }, select: { id: true } });
+    if (emailOwner) return res.status(409).json({ error: 'That email address is already used by another account.' });
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        fullName: fullName.trim(),
+        email: normalizedEmail,
+        studentId: studentId?.trim() || null,
+        department: department?.trim() || null,
+        ...(membershipStatus ? { membershipStatus } : {}),
+        ...(membershipTier ? { membershipTier } : {}),
+      },
+    });
+    await logActivity({ req, userId: req.user.id, action: 'UPDATE', resourceType: 'USER', resourceId: updated.id, description: `Edited member account: ${updated.fullName}`, metadata: safeBody(req.body) });
+    const { passwordHash: _ph, ...safe } = updated;
+    return res.json({ user: safe });
+  } catch (err) {
+    console.error('edit member error:', err);
+    return res.status(500).json({ error: 'Could not edit member.' });
+  }
+});
+
 // GET /api/dashboard/admin/users  (admin - list all users for membership management)
 router.get('/admin/users', authRequired, adminRequired, async (req, res) => {
   try {

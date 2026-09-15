@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { Spinner, EmptyState, MembershipBadge } from '../../components/Common.jsx';
-import { UserCheck, ShieldCheck, Loader2, Save, Eye, Trash2, X, LogIn, BookOpen, Activity } from 'lucide-react';
+import { UserCheck, ShieldCheck, Loader2, Save, Eye, Trash2, X, LogIn, BookOpen, Activity, Pencil } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -17,6 +17,7 @@ export default function AdminMembers() {
   const [busy, setBusy] = useState(null);
   const [details, setDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(null);
+  const [editing, setEditing] = useState(null);
   const { user: currentUser } = useAuth();
   const isPresident = currentUser?.bodRole === 'PRESIDENT';
 
@@ -64,6 +65,16 @@ export default function AdminMembers() {
     try { await api.deleteAdminUser(user.id); setUsers((current) => current.filter((item) => item.id !== user.id)); if (details?.id === user.id) setDetails(null); } catch (error) { alert(error.message); } finally { setBusy(null); }
   };
 
+  const saveEdit = async (event) => {
+    event.preventDefault();
+    setBusy(`${editing.id}:edit`);
+    try {
+      const data = await api.updateAdminUser(editing.id, editing);
+      setUsers((current) => current.map((item) => item.id === editing.id ? { ...item, ...data.user } : item));
+      setEditing(null);
+    } catch (error) { alert(error.message); } finally { setBusy(null); }
+  };
+
   if (loading) return <Spinner label="Loading members..." />;
 
   return (
@@ -103,6 +114,7 @@ export default function AdminMembers() {
                       <span className="text-xs text-slate-400">{months.length}/12 months paid</span>
                       <div className="flex gap-2">
                         <button type="button" disabled={detailsLoading === user.id} onClick={() => showDetails(user)} className="btn-ghost text-xs"><Eye className="w-3.5 h-3.5" /> {detailsLoading === user.id ? 'Loading...' : 'Details'}</button>
+                        {isPresident && <button type="button" onClick={() => setEditing({ id: user.id, fullName: user.fullName, email: user.email, studentId: user.studentId || '', department: user.department || '', membershipStatus: user.membershipStatus, membershipTier: user.membershipTier })} className="btn-ghost text-xs"><Pencil className="w-3.5 h-3.5" /> Edit</button>}
                         <button type="button" disabled={!user.paymentDirty || busy === `${user.id}:payments`} onClick={() => savePayments(user)} className="btn-secondary text-xs disabled:opacity-50"><Save className="w-3.5 h-3.5" /> {busy === `${user.id}:payments` ? 'Saving...' : 'Save payments'}</button>
                       </div>
                     </div>
@@ -122,6 +134,7 @@ export default function AdminMembers() {
         </div>
       )}
       {details && <MemberDetails details={details} onClose={() => setDetails(null)} />}
+      {editing && <MemberEditForm member={editing} busy={busy === `${editing.id}:edit`} onChange={setEditing} onSave={saveEdit} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -149,3 +162,18 @@ function MemberDetails({ details, onClose }) {
 }
 
 function Summary({ icon: Icon, label, value }) { return <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-2"><Icon className="w-4 h-4 text-brand-600" /><div><div className="text-lg font-bold text-brand-950">{value}</div><div className="text-xs text-slate-500">{label}</div></div></div>; }
+
+function MemberEditForm({ member, busy, onChange, onSave, onClose }) {
+  const update = (field, value) => onChange({ ...member, [field]: value });
+  return <div className="fixed inset-0 z-50 bg-brand-950/50 p-4 flex items-center justify-center" role="dialog" aria-modal="true">
+    <form onSubmit={onSave} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3">
+      <div className="flex items-center justify-between"><h3 className="text-xl font-bold text-brand-950">Edit member account</h3><button type="button" className="btn-ghost p-1.5" onClick={onClose}><X className="w-5 h-5" /></button></div>
+      <p className="text-sm text-slate-500">Changes to the name and email are used the next time this member signs in and are shown throughout the platform.</p>
+      <div><label className="label">Full name</label><input className="input" required value={member.fullName} onChange={(e) => update('fullName', e.target.value)} /></div>
+      <div><label className="label">Email</label><input type="email" className="input" required value={member.email} onChange={(e) => update('email', e.target.value)} /></div>
+      <div className="grid sm:grid-cols-2 gap-3"><div><label className="label">Student ID</label><input className="input" value={member.studentId} onChange={(e) => update('studentId', e.target.value)} /></div><div><label className="label">Department</label><input className="input" value={member.department} onChange={(e) => update('department', e.target.value)} /></div></div>
+      <div className="grid sm:grid-cols-2 gap-3"><div><label className="label">Membership status</label><select className="input" value={member.membershipStatus} onChange={(e) => update('membershipStatus', e.target.value)}><option value="PENDING">Pending</option><option value="ACTIVE">Active</option><option value="VERIFIED">Verified</option></select></div><div><label className="label">Membership tier</label><select className="input" value={member.membershipTier} onChange={(e) => update('membershipTier', e.target.value)}><option value="BASIC">Basic</option><option value="PREMIUM">Premium</option><option value="HONORARY">Honorary</option></select></div></div>
+      <div className="flex gap-2 pt-2"><button type="submit" disabled={busy} className="btn-primary">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save changes</button><button type="button" onClick={onClose} className="btn-secondary">Cancel</button></div>
+    </form>
+  </div>;
+}

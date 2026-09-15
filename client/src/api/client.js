@@ -42,6 +42,7 @@ export const api = {
   updateMembershipPayments: (body) => request('/dashboard/membership-payments', { method: 'PUT', body }),
   adminUsers: () => request('/dashboard/admin/users'),
   adminUserDetails: (id) => request(`/dashboard/admin/users/${id}/details`),
+  updateAdminUser: (id, body) => request(`/dashboard/admin/users/${id}`, { method: 'PUT', body }),
   deleteAdminUser: (id) => request(`/dashboard/admin/users/${id}`, { method: 'DELETE' }),
 
   // board members
