@@ -9,6 +9,7 @@ import AdminCourses from './admin/AdminCourses.jsx';
 import AdminExams from './admin/AdminExams.jsx';
 import AdminBoard from './admin/AdminBoard.jsx';
 import AdminGames from './admin/AdminGames.jsx';
+import AdminGameRegistrations from './admin/AdminGameRegistrations.jsx';
 import AdminMembers from './admin/AdminMembers.jsx';
 import AdminAnnouncements from './admin/AdminAnnouncements.jsx';
 import AdminActivity from './admin/AdminActivity.jsx';
@@ -29,6 +30,7 @@ const baseTabs = [
   { to: '/admin/exams', label: 'Exams', icon: Award },
   { to: '/admin/grading', label: 'Grading', icon: PenLine },
   { to: '/admin/games', label: 'Business Games', icon: Gamepad2 },
+  { to: '/admin/game-registrations', label: 'Game Registrations', icon: UserCheck },
   { to: '/admin/members', label: 'Membership', icon: UserCheck },
   { to: '/admin/screening', label: 'Screening', icon: UserCheck },
   { to: '/admin/applications', label: 'Applications', icon: GraduationCap },
@@ -118,6 +120,7 @@ export default function AdminPanel() {
             {/* Protected routes for admins/BOD only */}
             <Route path="analytics" element={!isInstructorOnly ? <AdminAnalytics /> : <Navigate to="/admin/courses" replace />} />
             <Route path="games" element={!isInstructorOnly ? <AdminGames /> : <Navigate to="/admin/courses" replace />} />
+            <Route path="game-registrations" element={!isInstructorOnly ? <AdminGameRegistrations /> : <Navigate to="/admin/courses" replace />} />
             <Route path="members" element={!isInstructorOnly ? <AdminMembers /> : <Navigate to="/admin/courses" replace />} />
             <Route path="screening" element={!isInstructorOnly ? <AdminScreening /> : <Navigate to="/admin/courses" replace />} />
             <Route path="applications" element={!isInstructorOnly ? <AdminApplications /> : <Navigate to="/admin/courses" replace />} />

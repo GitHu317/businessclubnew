@@ -579,6 +579,12 @@ function LessonQuiz({ quiz, answers, setAnswers, submitted, setSubmitted, result
     );
   }
 
+  const normalizeQuizAnswer = (value) => String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[.,!?;:]/g, '')
+    .replace(/\s+/g, ' ');
+
   const checkQuiz = () => {
     let correct = 0;
     const detail = quiz.questions.map((q) => {
@@ -600,9 +606,10 @@ function LessonQuiz({ quiz, answers, setAnswers, submitted, setSubmitted, result
           }
         }
       } else if (q.type === 'TRUE_FALSE') {
-        isCorrect = String(ans).toLowerCase() === String(q.answer).toLowerCase();
+        isCorrect = normalizeQuizAnswer(ans) === normalizeQuizAnswer(q.answer);
       } else if (q.type === 'FILL_BLANK') {
-        isCorrect = String(ans || '').trim().toLowerCase().replace(/[.,!?;:]/g, '') === String(q.answer || '').trim().toLowerCase().replace(/[.,!?;:]/g, '');
+        const acceptedAnswers = Array.isArray(q.answer) ? q.answer : String(q.answer || '').split('|');
+        isCorrect = acceptedAnswers.some((accepted) => normalizeQuizAnswer(ans) === normalizeQuizAnswer(accepted));
       }
 
       if (isCorrect) correct++;
@@ -677,7 +684,7 @@ function LessonQuiz({ quiz, answers, setAnswers, submitted, setSubmitted, result
                 <div className="flex gap-2">
                   {['True', 'False'].map((opt) => {
                     const selected = answers[q.id] === opt;
-                    const isCorrect = submitted && String(opt).toLowerCase() === String(q.answer).toLowerCase();
+                    const isCorrect = submitted && normalizeQuizAnswer(opt) === normalizeQuizAnswer(q.answer);
                     const showWrong = submitted && selected && !isCorrect;
                     return (
                       <button
@@ -709,7 +716,7 @@ function LessonQuiz({ quiz, answers, setAnswers, submitted, setSubmitted, result
               )}
               {submitted && res && (
                 <p className={`text-xs mt-1.5 ${res.isCorrect ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {res.isCorrect ? '✓ Correct!' : `✗ Correct answer: ${correctText}`}
+                  {res.isCorrect ? '✓ Correct' : `✗ Incorrect${correctText ? ` — Correct answer: ${correctText}` : ''}`}
                 </p>
               )}
             </div>

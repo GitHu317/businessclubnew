@@ -31,6 +31,26 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /api/games/:id/registrations  (admin)
+router.get('/:id/registrations', authRequired, adminRequired, async (req, res) => {
+  try {
+    const game = await prisma.businessGame.findUnique({ where: { id: req.params.id }, select: { id: true, title: true } });
+    if (!game) return res.status(404).json({ error: 'Game not found.' });
+
+    const registrations = await prisma.gameRegistration.findMany({
+      where: { gameId: req.params.id },
+      orderBy: { registeredAt: 'desc' },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, studentId: true, department: true } },
+      },
+    });
+    return res.json({ game, registrations });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Could not load game registrations.' });
+  }
+});
+
 // POST /api/games  (admin)
 router.post('/', authRequired, adminRequired, async (req, res) => {
   try {

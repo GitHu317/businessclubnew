@@ -134,6 +134,7 @@ export const api = {
   updateGame: (id, body) => request(`/games/${id}`, { method: 'PUT', body }),
   deleteGame: (id) => request(`/games/${id}`, { method: 'DELETE' }),
   registerGame: (id) => request(`/games/${id}/register`, { method: 'POST' }),
+  gameRegistrations: (id) => request(`/games/${id}/registrations`),
 
   // announcements
   listAnnouncements: () => request('/announcements', { auth: false }),
