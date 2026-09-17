@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
       const all = await prisma.course.findMany({
         where: { published: true },
         include: { _count: { select: { lessons: true, exams: true } } },
-        orderBy: { cardOrder: 'asc' },
+        orderBy: [{ cardOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       });
       const filtered = all.filter((c) => {
         let tags = [];
@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
     const courses = await prisma.course.findMany({
       where,
       include: { _count: { select: { lessons: true, exams: true } } },
-      orderBy: { cardOrder: 'asc' },
+      orderBy: [{ cardOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
     // attach creator profile summary and parse tags array
     const withCreator = await Promise.all(
@@ -113,7 +113,7 @@ router.get('/:slug', async (req, res) => {
       where: { slug: req.params.slug },
       include: {
         lessons: {
-          orderBy: { order: 'asc' },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           include: { media: { orderBy: { order: 'asc' } }, quiz: { include: { questions: { orderBy: { order: 'asc' } } } } },
         },
         exams: { include: { _count: { select: { questions: true } } } },
@@ -151,6 +151,14 @@ router.post('/', authRequired, async (req, res) => {
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required.' });
     }
+    // New or copied courses belong after the existing ordered courses unless a
+    // position was explicitly supplied. Avoid sharing the default 0, which made
+    // tied records appear in an arbitrary database order.
+    let nextCardOrder = cardOrder;
+    if (nextCardOrder === undefined || nextCardOrder === null || nextCardOrder === '') {
+      const lastCourse = await prisma.course.findFirst({ orderBy: [{ cardOrder: 'desc' }, { createdAt: 'desc' }] });
+      nextCardOrder = (lastCourse?.cardOrder || 0) + 1;
+    }
     const course = await prisma.course.create({
       data: {
         title,
@@ -161,7 +169,7 @@ router.post('/', authRequired, async (req, res) => {
         thumbnailUrl: thumbnailUrl || null,
         published: published ?? true,
         tags: JSON.stringify(tags || []),
-        cardOrder: cardOrder || 0,
+        cardOrder: Number(nextCardOrder) || 0,
         prerequisiteId: prerequisiteId || null,
         creatorId: creator ? creator.id : null,
       },
@@ -228,6 +236,12 @@ router.post('/:courseId/lessons', authRequired, async (req, res) => {
     }
     if (!title) return res.status(400).json({ error: 'Lesson title is required.' });
 
+    // New or copied lessons belong at the end when no position is supplied.
+    let nextOrder = order;
+    if (nextOrder === undefined || nextOrder === null || nextOrder === '') {
+      const lastLesson = await prisma.lesson.findFirst({ where: { courseId: req.params.courseId }, orderBy: [{ order: 'desc' }, { createdAt: 'desc' }] });
+      nextOrder = (lastLesson?.order || 0) + 1;
+    }
     const lesson = await prisma.lesson.create({
       data: {
         courseId: req.params.courseId,
@@ -235,7 +249,7 @@ router.post('/:courseId/lessons', authRequired, async (req, res) => {
         content: content || '',
         videoUrl: videoUrl || null,
         videoType: detectVideoType(videoUrl),
-        order: order || 0,
+        order: Number(nextOrder) || 0,
         durationMins: durationMins || 10,
         media: media && media.length ? {
           create: media.map((m, i) => ({ type: m.type, url: m.url, filename: m.filename || null, caption: m.caption || null, order: m.order || i + 1 })),

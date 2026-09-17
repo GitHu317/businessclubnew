@@ -103,7 +103,7 @@ function CourseForm({ course, allCourses, onSave, onCancel }) {
     level: course?.level || 'Beginner',
     published: course?.published ?? true,
     tags: course?.tags?.join(', ') || '',
-    cardOrder: course?.cardOrder || 0,
+    cardOrder: course?.cardOrder ?? (allCourses.reduce((max, item) => Math.max(max, Number(item.cardOrder) || 0), 0) + 1),
     prerequisiteId: course?.prerequisiteId || '',
     thumbnailUrl: course?.thumbnailUrl || '',
   });
