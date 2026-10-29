@@ -7,21 +7,21 @@
     <meta name="description" content="Business Club at Kotebe University of Education | Science Shared Campus — Learn, compete, and earn verifiable certificates." />
     <title>Business Club | Kotebe University of Education</title>
     <meta name="google-site-verification" content="MXTZy71O9SQte2K2LZhA3McnladlUtAqMZMtiklTohc" />
-  <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
-</head>
+    <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-  if (typeof window !== 'undefined') {
-    const originalInfo = console.info;
-    console.info = (...args) => {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('Download the React DevTools')) {
-        return;
+      if (typeof window !== 'undefined') {
+        const originalInfo = console.info;
+        console.info = (...args) => {
+          if (args[0] && typeof args[0] === 'string' && args[0].includes('Download the React DevTools')) {
+            return;
+          }
+          originalInfo.apply(console, args);
+        };
       }
-      originalInfo.apply(console, args);
-    };
-  }
-</script>
+    </script>
   </body>
 </html>
